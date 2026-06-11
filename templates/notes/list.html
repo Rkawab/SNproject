@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}ノート一覧 | StudyNotes{% endblock %}
+
+{% block content %}
+<h1 class="h4 mt-3 mb-3">📖 ノート一覧{% if subject %}（{{ subject.name }}）{% endif %}</h1>
+
+<form method="get" action="{% url 'notes:search' %}" class="mb-3">
+    <div class="input-group">
+        <input type="search" name="q" class="form-control" placeholder="🔍 検索…">
+        <button class="btn btn-study" type="submit">検索</button>
+    </div>
+</form>
+
+{% if folders %}
+<div class="accordion" id="folderAccordion">
+    {% for folder in folders %}
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#folder{{ folder.id }}">
+                {% if folder.is_out_of_scope %}🚫{% else %}📁{% endif %}
+                {{ folder.display_name }}
+                <span class="badge bg-secondary ms-2">{{ folder.notes.count }}</span>
+                {% if folder.is_out_of_scope %}<span class="badge bg-warning text-dark ms-1">範囲外</span>{% endif %}
+            </button>
+        </h2>
+        <div id="folder{{ folder.id }}" class="accordion-collapse collapse" data-bs-parent="#folderAccordion">
+            <div class="list-group list-group-flush">
+                {% for note in folder.notes.all %}
+                <a href="{% url 'notes:detail' note.id %}" class="list-group-item list-group-item-action py-3">
+                    {{ note.title }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">ノートがありません。<code>import_content</code> を実行してください。</div>
+{% endif %}
+{% endblock %}

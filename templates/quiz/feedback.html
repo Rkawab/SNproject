@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ n }} / {{ total }} 判定 | StudyNotes{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mt-3 mb-1">
+    <span class="fw-bold">{{ n }} / {{ total }}</span>
+    {% if q.genre %}<span class="badge bg-study-light text-study">{{ q.genre }}</span>{% endif %}
+</div>
+<div class="progress quiz-progress mb-3">
+    <div class="progress-bar bg-study-primary" style="width: {% widthratio n total 100 %}%"></div>
+</div>
+
+{% if correct %}
+<div class="alert alert-success fw-bold fs-5 text-center">⭕ 正解！</div>
+{% else %}
+<div class="alert alert-danger fw-bold fs-5 text-center">❌ 不正解（正解は {{ q.answer }}）</div>
+{% endif %}
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body note-content">
+        {{ q.question_html|safe }}
+    </div>
+</div>
+
+<div class="d-grid gap-2 mb-3">
+    {% for letter, text in q.choices.items %}
+    <div class="btn choice-btn text-start
+        {% if letter == q.answer %}btn-success
+        {% elif letter == chosen %}btn-danger
+        {% else %}btn-outline-secondary{% endif %}" style="pointer-events: none;">
+        <span class="fw-bold me-2">{{ letter }}.</span> {{ text }}
+        {% if letter == q.answer %} ✔{% elif letter == chosen %} ✘{% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+{% if q.explanation_html %}
+<div class="callout callout-info">
+    <div class="callout-title">解説</div>
+    <div class="callout-body note-content">{{ q.explanation_html|safe }}</div>
+</div>
+{% endif %}
+
+<div class="d-grid mt-3">
+    <a href="{{ next_url }}" class="btn btn-study big-btn">
+        {% if is_last %}📊 結果を見る{% else %}次の問題へ →{% endif %}
+    </a>
+</div>
+{% endblock %}

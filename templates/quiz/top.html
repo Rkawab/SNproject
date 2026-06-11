@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}演習 | StudyNotes{% endblock %}
+
+{% block content %}
+<h1 class="h4 mt-3 mb-3">✏️ 問題演習{% if subject %}（{{ subject.name }}）{% endif %}</h1>
+
+{% if review_count %}
+<div class="d-grid mb-4">
+    <a href="{% url 'quiz:review_start' %}" class="btn btn-study big-btn">
+        🔁 ×だった問題を復習する <span class="badge bg-light text-dark ms-2">{{ review_count }}問</span>
+    </a>
+</div>
+{% endif %}
+
+<h2 class="h6 text-muted">📝 一問一答（基礎固め）</h2>
+<div class="list-group mb-4">
+    {% for s in basic_sets %}
+    <a href="{% url 'quiz:start' s.id %}" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
+        {{ s.title }}
+        <span class="badge bg-secondary">{{ s.n_questions }}問</span>
+    </a>
+    {% empty %}
+    <div class="list-group-item text-muted">一問一答セットがありません。</div>
+    {% endfor %}
+</div>
+
+<h2 class="h6 text-muted">🎯 模擬試験（シナリオ4択）</h2>
+<div class="list-group mb-4">
+    {% for s in exam_sets %}
+    <a href="{% url 'quiz:start' s.id %}" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
+        {{ s.title }}
+        <span class="badge bg-secondary">{{ s.n_questions }}問</span>
+    </a>
+    {% empty %}
+    <div class="list-group-item text-muted">模擬試験セットがありません。</div>
+    {% endfor %}
+</div>
+
+<a href="{% url 'quiz:stats' %}" class="btn btn-outline-study">📊 成績を見る</a>
+{% endblock %}

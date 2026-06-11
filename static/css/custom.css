@@ -1,0 +1,122 @@
+/* ===== StudyNotes テーマ（紫） ===== */
+:root {
+    --study-primary: #6f42c1;
+    --study-primary-dark: #59359c;
+    --study-primary-light: #f3eefc;
+}
+
+.bg-study-primary {
+    background-color: var(--study-primary);
+}
+
+.btn-study {
+    background-color: var(--study-primary);
+    border-color: var(--study-primary);
+    color: #fff;
+}
+.btn-study:hover, .btn-study:focus {
+    background-color: var(--study-primary-dark);
+    border-color: var(--study-primary-dark);
+    color: #fff;
+}
+.btn-outline-study {
+    border-color: var(--study-primary);
+    color: var(--study-primary);
+}
+.btn-outline-study:hover {
+    background-color: var(--study-primary);
+    color: #fff;
+}
+
+.text-study { color: var(--study-primary); }
+.bg-study-light { background-color: var(--study-primary-light); }
+
+/* ===== スマホ向け大ボタン ===== */
+.big-btn {
+    min-height: 56px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.choice-btn {
+    min-height: 52px;
+    text-align: left;
+    white-space: normal;
+    width: 100%;
+}
+
+/* ===== Obsidianコールアウト再現 ===== */
+.callout {
+    border-left: 4px solid #888;
+    border-radius: 6px;
+    padding: 0;
+    margin: 1rem 0;
+    background: #f8f9fa;
+    overflow: hidden;
+}
+.callout-title, .callout summary {
+    font-weight: bold;
+    padding: 0.5rem 0.75rem;
+}
+.callout summary { cursor: pointer; }
+.callout-body { padding: 0.25rem 0.75rem 0.5rem; }
+.callout-body > :last-child { margin-bottom: 0; }
+
+.callout-info    { border-left-color: #0d6efd; background: #eef5ff; }
+.callout-info    .callout-title, .callout-info summary { color: #0d6efd; }
+.callout-note    { border-left-color: #6c757d; background: #f4f5f6; }
+.callout-tip     { border-left-color: #20c997; background: #ebfaf5; }
+.callout-tip     .callout-title, .callout-tip summary { color: #148567; }
+.callout-success { border-left-color: #198754; background: #ecf7f1; }
+.callout-success .callout-title, .callout-success summary { color: #198754; }
+.callout-warning { border-left-color: #ffc107; background: #fff8e6; }
+.callout-warning .callout-title, .callout-warning summary { color: #b38600; }
+.callout-danger  { border-left-color: #dc3545; background: #fdeeee; }
+.callout-danger  .callout-title, .callout-danger summary { color: #dc3545; }
+.callout-question{ border-left-color: #6f42c1; background: #f3eefc; }
+.callout-question .callout-title, .callout-question summary { color: #6f42c1; }
+.callout-example { border-left-color: #6f42c1; background: #f3eefc; }
+.callout-quote   { border-left-color: #adb5bd; background: #f8f9fa; }
+
+/* ===== ノート本文 ===== */
+.note-content img { max-width: 100%; }
+.note-content table {
+    width: 100%;
+    margin: 1rem 0;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+}
+.note-content table th, .note-content table td {
+    border: 1px solid #dee2e6;
+    padding: 0.4rem 0.6rem;
+}
+.note-content table th { background: var(--study-primary-light); }
+.note-content h1 { font-size: 1.5rem; margin-top: 1rem; }
+.note-content h2 {
+    font-size: 1.25rem;
+    margin-top: 1.75rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid var(--study-primary-light);
+}
+.note-content h3 { font-size: 1.1rem; margin-top: 1.25rem; }
+.note-content pre {
+    background: #2d2d2d;
+    color: #f3f3f3;
+    padding: 0.75rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 0.85rem;
+}
+.note-content code { word-break: break-all; }
+.note-content pre code { word-break: normal; }
+
+/* 検索ハイライト */
+mark {
+    background: #ffe69c;
+    padding: 0 2px;
+}
+
+/* 進捗バーの高さ */
+.quiz-progress { height: 8px; }

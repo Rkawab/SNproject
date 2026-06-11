@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}ホーム | StudyNotes{% endblock %}
+
+{% block content %}
+{% if subjects|length > 1 %}
+<ul class="nav nav-pills mt-3">
+    {% for s in subjects %}
+    <li class="nav-item">
+        <a class="nav-link {% if s.id == subject.id %}active bg-study-primary{% endif %}" href="?subject={{ s.id }}">{{ s.name }}</a>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% if subject %}
+<h1 class="h4 mt-3 mb-3">{{ subject.name }}</h1>
+
+<!-- 検索ボックス（最上部） -->
+<form method="get" action="{% url 'notes:search' %}" class="mb-4">
+    <div class="input-group input-group-lg">
+        <input type="search" name="q" class="form-control" placeholder="🔍 知識を検索…" aria-label="検索">
+        <button class="btn btn-study" type="submit">検索</button>
+    </div>
+</form>
+
+<div class="d-grid gap-3">
+    <a href="{% url 'notes:list' %}" class="btn btn-outline-study big-btn">
+        📖 ノートを見る <span class="badge bg-secondary ms-2">{{ note_count }}</span>
+    </a>
+    <a href="{% url 'quiz:top' %}" class="btn btn-outline-study big-btn">
+        ✏️ 問題を解く <span class="badge bg-secondary ms-2">一問一答 {{ basic_sets }} / 模擬 {{ exam_sets }}</span>
+    </a>
+    {% if review_count %}
+    <a href="{% url 'quiz:review_start' %}" class="btn btn-study big-btn">
+        🔁 ×だった問題を復習する <span class="badge bg-light text-dark ms-2">{{ review_count }}</span>
+    </a>
+    {% endif %}
+    <a href="{% url 'quiz:stats' %}" class="btn btn-outline-study big-btn">📊 成績を見る</a>
+</div>
+{% else %}
+<div class="alert alert-info mt-4">
+    コンテンツが未取込です。PCで <code>python manage.py sync_content</code> →
+    <code>python manage.py import_content</code> を実行してください。
+</div>
+{% endif %}
+{% endblock %}

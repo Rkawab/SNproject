@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ note.title }} | StudyNotes{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mt-3">
+    <ol class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="{% url 'notes:list' %}">ノート</a></li>
+        <li class="breadcrumb-item active">{{ note.folder.display_name }}</li>
+    </ol>
+</nav>
+
+{% if note.folder.is_out_of_scope %}
+<div class="alert alert-warning py-2">🚫 このノートは試験範囲外に分類されています。</div>
+{% endif %}
+
+{% if note.tags %}
+<div class="mb-2">
+    {% for tag in note.tags %}<span class="badge bg-study-light text-study me-1">#{{ tag }}</span>{% endfor %}
+</div>
+{% endif %}
+
+<article class="note-content">
+    {{ note.body_html|safe }}
+</article>
+
+<div class="mt-4">
+    <a href="{% url 'notes:list' %}" class="btn btn-outline-study">← ノート一覧へ</a>
+</div>
+{% endblock %}
