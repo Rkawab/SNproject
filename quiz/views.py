@@ -47,10 +47,12 @@ def top(request):
     subject, subjects = get_current_subject(request)
     exam_sets, review_count = [], 0
     if subject:
+        # annotate(Count) を付けると Meta.ordering が SQL に反映されないため、
+        # 番号順（先頭番号）を保証するよう明示的に order_by を指定する。
         exam_sets = QuestionSet.objects.filter(
             subject=subject,
             set_type=QuestionSet.TYPE_EXAM,
-        ).annotate(n_questions=Count("questions"))
+        ).annotate(n_questions=Count("questions")).order_by("order", "source_filename")
         review_count = len(wrong_question_ids(subject))
     return render(request, "quiz/top.html", {
         "subject": subject, "subjects": subjects,
