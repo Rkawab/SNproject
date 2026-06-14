@@ -3,6 +3,36 @@
 > [!info] 概要
 > APIの**作成・公開・運用・保護**をフルマネージドで提供するサービス。外部からのHTTPリクエストを受け付け、Lambda / EC2 / ECS / 他AWSサービス / 外部HTTPに振り分ける「**APIの玄関口**」。サーバーレスアーキテクチャの中心的存在。
 
+## そもそもAPI Gatewayとは
+
+API Gatewayは、Webサイトやスマホアプリから来た依頼を受け付け、適切な処理先へ渡す**AWS管理の受付窓口**。
+
+```text
+スマホ・ブラウザ
+   ↓ 「注文を登録して」
+API Gateway     依頼を受け付けて振り分ける
+   ↓
+Lambda          実際の処理を行う
+   ↓
+DynamoDB        データを保存する
+```
+
+API Gateway自身は、通常は業務処理やデータ保存をしない。
+
+- HTTPSでアクセスできるURLを公開する
+- URLとHTTPメソッドに応じて処理先を振り分ける
+- 必要に応じて認証、アクセス制限、記録を行う
+
+```text
+GET    /products  → 商品一覧を取得するLambda
+POST   /orders    → 注文を登録するLambda
+DELETE /orders/10 → 注文を削除するLambda
+```
+
+> [!note] 従来型Webアプリとの違い
+> Djangoなどは、Webリクエストの受付と業務処理を1つのアプリが担当することが多い。
+> サーバーレス構成では、**受付をAPI Gateway、処理をLambda**というように役割を分ける。
+
 ## たとえ話
 
 **ホテルのフロントデスク**。
@@ -13,16 +43,121 @@
 
 ---
 
+## 最初に結論：REST APIとHTTP APIは何が違う？
+
+> [!important] ここが最大の混乱ポイント
+> **REST APIもHTTP APIも、HTTPで呼び出すRESTful APIを作るためのAPI Gateway製品**。
+> 「REST方式かHTTP方式か」という通信方式の比較ではなく、AWSが用意した**高機能版と軽量版という2つの商品名**である。
+
+```text
+Amazon API Gateway
+├─ REST API      高機能版。APIの細かな管理・制御まで行う
+├─ HTTP API      軽量版。受けたリクエストを素早くバックエンドへ渡す
+└─ WebSocket API 接続を維持して双方向通信する
+```
+
+一言で分けると次のとおり。
+
+- **HTTP API**：API Gatewayを「シンプルな転送係」として使う
+- **REST API**：転送に加えて「顧客別の利用管理・検査・キャッシュ・防御」まで任せる
+
+## 同じ注文APIで比べる
+
+どちらでも、次のAPIは作れる。
+
+```text
+スマホアプリ
+   │ POST /orders
+   ▼
+API Gateway
+   ▼
+Lambda
+   ▼
+DynamoDB
+```
+
+### HTTP APIで作る場合
+
+客から注文を受けた受付係が、注文票をほぼそのまま厨房のLambdaへ渡すイメージ。
+
+- `/orders` をLambdaへ転送する
+- JWTやIAMで利用者を認可する
+- CORSを設定する
+- アクセスログやメトリクスを記録する
+
+これで足りるなら、**HTTP APIの方が簡単で低コスト**。
+
+### REST APIで作る場合
+
+受付係に加えて、会員管理、注文票の検査、整理券、作り置きまで備えた高機能な窓口。
+
+- 顧客Aと顧客Bに別々のAPIキーを発行する
+- 使用量プランで「Aは月1万回、Bは月10万回」と制限する
+- 注文票の必須項目をLambdaへ渡す前に検証する
+- 同じ問い合わせ結果をキャッシュする
+- AWS WAFで不審なリクエストを遮断する
+- カナリアリリースで新バージョンへ一部だけ流す
+
+このような**API管理機能が必要だからREST APIを選ぶ**のであり、URLがREST風だから選ぶわけではない。
+
+## 機能比較
+
+| 判断軸 | REST API | HTTP API |
+|---|---|---|
+| 基本的なHTTPルーティング | 対応 | 対応 |
+| Lambda・公開HTTPへの接続 | 対応 | 対応 |
+| IAM認可 | 対応 | 対応 |
+| Lambda Authorizer | 対応 | 対応 |
+| JWT Authorizer | Lambda Authorizer等で実装 | **標準対応** |
+| CORS設定 | 対応 | 対応・設定が簡単 |
+| 自動デプロイ | 非対応 | **対応** |
+| APIキー・使用量プラン | **対応** | 非対応 |
+| 顧客ごとのレート制限 | **対応** | 非対応 |
+| リクエスト検証 | **対応** | 非対応 |
+| API Gateway内キャッシュ | **対応** | 非対応 |
+| AWS WAF連携 | **対応** | 非対応 |
+| Private APIエンドポイント | **対応** | 非対応 |
+| Edge-Optimizedエンドポイント | **対応** | 非対応（Regionalのみ） |
+| カナリアリリース | **対応** | 非対応 |
+| X-Rayトレーシング | **対応** | 非対応 |
+| 相対的な料金 | 高い | **安い** |
+
+> [!note] 「HTTP APIには制限がない」わけではない
+> API全体やルート単位のスロットリングは設定できる。HTTP APIにないのは、主に**APIキーと使用量プランを使った顧客別の利用管理**。
+
+## 迷ったときの選び方
+
+```text
+APIキー・使用量プランが必要？ ── Yes → REST API
+        │ No
+キャッシュ・WAF・リクエスト検証・Private APIが必要？
+        ├─ Yes → REST API
+        └─ No  → HTTP APIを第一候補
+```
+
+> [!tip] 実務上の出発点
+> 新規のLambda APIやHTTPバックエンドの公開なら、まずHTTP APIで要件を満たせるか確認する。
+> 「REST APIの機能が必要」と分かった時点でREST APIを選ぶ。
+
+## 名前に惑わされないための確認
+
+| 誤解 | 正しい理解 |
+|---|---|
+| REST APIだけがREST設計に使える | **両方ともRESTful APIに使える** |
+| HTTP APIだけがHTTP通信する | **両方ともHTTPリクエストを受ける** |
+| REST APIが新しく、HTTP APIが古い | REST APIが先。HTTP APIは後発の軽量版 |
+| HTTP APIは小規模専用 | 規模ではなく**必要な管理機能**で選ぶ |
+| 高機能なREST APIを選べば無難 | 不要な機能のために料金と設定の複雑さが増える |
+
+---
+
 ## サポートするAPIタイプ
 
-| タイプ | 特徴 | コスト | 用途 |
-|--------|------|--------|------|
-| **REST API** | 全機能（キャッシュ・APIキー・WAF・カナリア等） | 高 | 一般的なREST API |
-| **HTTP API** | 軽量・**低レイテンシ**・低コスト | 低（REST比 約70%減） | シンプルなプロキシ・新規 |
-| **WebSocket API** | 双方向通信 | 中 | チャット・通知・ゲーム |
-
-> [!tip] 新規はまず HTTP API を検討
-> HTTP APIは2020年から提供。RESTより機能は少ないが、必要十分な機能だけならHTTPの方が安くて速い。要件にキャッシュ・APIキー・リクエスト検証等が必要ならREST。
+| タイプ | 役割 | 主な用途 |
+|---|---|---|
+| **REST API** | HTTP受付 + 高度なAPI管理 | APIキー、キャッシュ、WAF、Private API等が必要 |
+| **HTTP API** | 軽量なHTTP受付・転送 | Lambda API、既存HTTPサービスの公開、JWT認可 |
+| **WebSocket API** | 接続を維持した双方向通信 | チャット、通知、ゲーム |
 
 ---
 
@@ -42,7 +177,7 @@
 
 ---
 
-## エンドポイントの種類
+## エンドポイントの種類（REST API）
 
 | 種類 | 特徴 |
 |------|------|
@@ -52,7 +187,7 @@
 
 ---
 
-## 認証・認可（4種類）
+## 認証・認可
 
 | 方式 | 用途 | 動作 |
 |------|------|------|
@@ -61,6 +196,9 @@
 | **Cognito Authorizer** | アプリ利用者の認証 | [[0810_Cognito]] User Pools のJWTを検証 |
 | **APIキー + 使用量プラン** | 顧客ごとのレート制限 | APIキーヘッダーで識別 |
 | **Resource Policy** | IP制限・VPC制限・クロスアカウント制御 | リソースベースのIAM |
+
+> [!warning] APIタイプによる違い
+> APIキー・使用量プラン、Resource PolicyはREST APIで利用する。HTTP APIはJWT Authorizerを標準サポートしており、CognitoやOIDC/OAuth 2.0と組み合わせやすい。
 
 ---
 
@@ -104,7 +242,7 @@
    └─ Stage: prod   (https://xxx.execute-api.../prod)
 ```
 
-### カナリアリリース
+### カナリアリリース（REST API）
 
 新バージョンに **段階的にトラフィックを流す**機能。
 
@@ -197,6 +335,8 @@ prod ステージ
 | 「**バックエンドの負荷を減らす**」 | キャッシュ + スロットリング |
 | 「**段階的リリース**」 | カナリアデプロイ |
 | 「**プライベートAPI**」 | Private エンドポイント + VPCエンドポイント |
+| 「低コストでシンプルなLambda API」「JWT認可」 | **HTTP API** |
+| 「APIキー・使用量プラン・キャッシュ・WAF・リクエスト検証」 | **REST API** |
 
 ---
 
@@ -205,3 +345,9 @@ prod ステージ
 - [[0810_Cognito]] - 認証統合（Cognito Authorizer）
 - [[0802_SQS]] - AWS Service統合で直接Put可能
 - [[Lambda]] - 最も多い統合先
+
+## 公式資料
+
+- [Choose between REST APIs and HTTP APIs](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-vs-rest.html)
+- [API Gateway HTTP APIs](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api.html)
+- [Amazon API Gateway pricing](https://aws.amazon.com/api-gateway/pricing/)
