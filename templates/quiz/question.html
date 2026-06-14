@@ -16,8 +16,7 @@
     </div>
 </div>
 
-{% if q.is_exam %}
-<!-- 模擬試験: A〜D をタップで回答 -->
+<!-- A〜D をタップで回答 -->
 <form method="post" action="{{ answer_url }}">
     {% csrf_token %}
     <div class="d-grid gap-2">
@@ -28,47 +27,10 @@
         {% endfor %}
     </div>
 </form>
-{% else %}
-<!-- 一問一答: 答えを見る → ○× 自己採点 -->
-<div class="d-grid">
-    <button type="button" id="revealBtn" class="btn btn-study big-btn">💡 答えを見る</button>
-</div>
-
-<div id="answerArea" class="d-none">
-    <div class="callout callout-success">
-        <div class="callout-title">答え：{{ q.answer }}</div>
-        {% if q.explanation_html %}
-        <div class="callout-body note-content">{{ q.explanation_html|safe }}</div>
-        {% endif %}
-    </div>
-
-    <form method="post" action="{{ answer_url }}" class="row g-2 mt-1">
-        {% csrf_token %}
-        <div class="col-6 d-grid">
-            <button type="submit" name="self" value="o" class="btn btn-success big-btn">⭕ わかった</button>
-        </div>
-        <div class="col-6 d-grid">
-            <button type="submit" name="self" value="x" class="btn btn-danger big-btn">❌ わからなかった</button>
-        </div>
-    </form>
-</div>
-{% endif %}
 
 <div class="mt-4">
     <a href="{% if set_id %}{% url 'quiz:result' set_id %}{% else %}{% url 'quiz:review_result' %}{% endif %}"
        class="btn btn-link text-muted"
        onclick="return confirm('ここまでの結果を表示して中断しますか？');">中断して結果を見る</a>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    var btn = document.getElementById("revealBtn");
-    if (btn) {
-        btn.addEventListener("click", function () {
-            btn.classList.add("d-none");
-            document.getElementById("answerArea").classList.remove("d-none");
-        });
-    }
-</script>
 {% endblock %}

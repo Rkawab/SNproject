@@ -6,11 +6,9 @@ from notes.models import Subject
 class QuestionSet(models.Model):
     """問題セット（mdファイル1つ＝1レコード）"""
 
-    TYPE_BASIC = "basic"
     TYPE_EXAM = "exam"
     TYPE_CHOICES = [
-        (TYPE_BASIC, "一問一答"),
-        (TYPE_EXAM, "模擬試験"),
+        (TYPE_EXAM, "4択問題"),
     ]
 
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="question_sets")
@@ -33,15 +31,15 @@ class QuestionSet(models.Model):
 
 
 class Question(models.Model):
-    """問題（一問一答・模擬試験 共通）"""
+    """4択問題"""
 
     question_set = models.ForeignKey(QuestionSet, on_delete=models.CASCADE, related_name="questions")
     number = models.IntegerField()
     genre = models.CharField(max_length=200, blank=True)
     question_html = models.TextField()
-    # 模擬試験のみ {"A": "...", "B": "..."}。一問一答は null
+    # {"A": "...", "B": "..."}
     choices = models.JSONField(null=True, blank=True)
-    # 模擬試験=正解の記号（"B"）/ 一問一答=答えのテキスト
+    # 正解の記号（"B"）
     answer = models.CharField(max_length=300)
     explanation_html = models.TextField(blank=True)
 
@@ -52,17 +50,12 @@ class Question(models.Model):
     def __str__(self):
         return f"{self.question_set.source_filename} Q{self.number}"
 
-    @property
-    def is_exam(self):
-        return self.choices is not None
-
-
 class AnswerLog(models.Model):
     """回答履歴（シングルユーザーのため user は持たない）"""
 
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="answer_logs")
     is_correct = models.BooleanField()
-    # 模擬試験で選んだ記号（一問一答は null）
+    # 選んだ記号
     chosen = models.CharField(max_length=10, null=True, blank=True)
     answered_at = models.DateTimeField(auto_now_add=True)
 

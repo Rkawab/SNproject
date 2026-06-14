@@ -28,7 +28,7 @@
         📖 ノートを見る <span class="badge bg-secondary ms-2">{{ note_count }}</span>
     </a>
     <a href="{% url 'quiz:top' %}" class="btn btn-outline-study big-btn">
-        ✏️ 問題を解く <span class="badge bg-secondary ms-2">一問一答 {{ basic_sets }} / 模擬 {{ exam_sets }}</span>
+        ✏️ 問題を解く <span class="badge bg-secondary ms-2">{{ exam_sets }}セット</span>
     </a>
     {% if review_count %}
     <a href="{% url 'quiz:review_start' %}" class="btn btn-study big-btn">

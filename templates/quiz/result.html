@@ -8,7 +8,7 @@
     <div class="card-body">
         <p class="display-4 fw-bold mb-0 text-study">{{ percent }}%</p>
         <p class="text-muted mb-2">{{ n_correct }} / {{ total }} 問正解</p>
-        {% if is_exam %}
+        {% if show_pass_line %}
             {% if passed %}
             <span class="badge bg-success fs-6">🎉 合格ライン（{{ pass_percent }}%）クリア！</span>
             {% else %}
@@ -45,13 +45,8 @@
         <div id="wrong{{ forloop.counter }}" class="accordion-collapse collapse" data-bs-parent="#wrongAccordion">
             <div class="accordion-body note-content">
                 {{ w.q.question_html|safe }}
-                {% if w.q.choices %}
                 <hr>
                 <p class="mb-1">正解: <strong>{{ w.q.answer }}</strong>{% if w.chosen %} ／ 自分の回答: {{ w.chosen }}{% endif %}</p>
-                {% else %}
-                <hr>
-                <p class="mb-1">答え: <strong>{{ w.q.answer }}</strong></p>
-                {% endif %}
                 {% if w.q.explanation_html %}
                 <div class="callout callout-info">
                     <div class="callout-title">解説</div>

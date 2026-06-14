@@ -30,7 +30,6 @@ def home(request):
     if subject:
         context.update({
             "note_count": subject.notes.count(),
-            "basic_sets": QuestionSet.objects.filter(subject=subject, set_type=QuestionSet.TYPE_BASIC).count(),
             "exam_sets": QuestionSet.objects.filter(subject=subject, set_type=QuestionSet.TYPE_EXAM).count(),
             "review_count": len(wrong_question_ids(subject)),
         })

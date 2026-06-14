@@ -45,15 +45,16 @@ def _url(set_id, name, n=None):
 @login_required
 def top(request):
     subject, subjects = get_current_subject(request)
-    basic_sets, exam_sets, review_count = [], [], 0
+    exam_sets, review_count = [], 0
     if subject:
-        sets = QuestionSet.objects.filter(subject=subject).annotate(n_questions=Count("questions"))
-        basic_sets = [s for s in sets if s.set_type == QuestionSet.TYPE_BASIC]
-        exam_sets = [s for s in sets if s.set_type == QuestionSet.TYPE_EXAM]
+        exam_sets = QuestionSet.objects.filter(
+            subject=subject,
+            set_type=QuestionSet.TYPE_EXAM,
+        ).annotate(n_questions=Count("questions"))
         review_count = len(wrong_question_ids(subject))
     return render(request, "quiz/top.html", {
         "subject": subject, "subjects": subjects,
-        "basic_sets": basic_sets, "exam_sets": exam_sets,
+        "exam_sets": exam_sets,
         "review_count": review_count,
     })
 
@@ -120,32 +121,22 @@ def answer(request, set_id, n):
 
     q = get_object_or_404(Question, pk=run["ids"][n - 1])
 
-    if q.is_exam:
-        chosen = request.POST.get("choice", "")
-        if chosen not in (q.choices or {}):
-            messages.warning(request, "選択肢を選んでください。")
-            return redirect(_url(set_id, "question", n))
-        correct = chosen == q.answer
-    else:
-        # 一問一答は自己採点（o=わかった / x=わからなかった）
-        chosen = None
-        correct = request.POST.get("self") == "o"
+    chosen = request.POST.get("choice", "")
+    if chosen not in (q.choices or {}):
+        messages.warning(request, "選択肢を選んでください。")
+        return redirect(_url(set_id, "question", n))
+    correct = chosen == q.answer
 
     AnswerLog.objects.create(question=q, is_correct=correct, chosen=chosen)
     run["results"].append({"qid": q.id, "correct": correct, "chosen": chosen})
     _save_run(request, set_id, run)
 
-    if q.is_exam:
-        return redirect(_url(set_id, "feedback", n))
-    # 一問一答は答えを見たうえでの自己採点なので、そのまま次へ
-    if n >= len(run["ids"]):
-        return redirect(_url(set_id, "result"))
-    return redirect(_url(set_id, "question", n + 1))
+    return redirect(_url(set_id, "feedback", n))
 
 
 @login_required
 def feedback(request, set_id, n):
-    """模擬試験の回答直後の判定・解説画面"""
+    """4択問題の回答直後の判定・解説画面"""
     run = _get_run(request, set_id)
     if not run or n > len(run["results"]):
         return redirect(_url(set_id, "question", n))
@@ -194,7 +185,7 @@ def result(request, set_id):
         "qset": qset, "set_id": set_id,
         "n_correct": n_correct, "total": total,
         "percent": round(ratio * 100),
-        "is_exam": bool(qset and qset.set_type == QuestionSet.TYPE_EXAM),
+        "show_pass_line": qset is not None,
         "passed": ratio >= pass_ratio,
         "pass_percent": round(pass_ratio * 100),
         "genre_stats": genre_stats, "wrong": wrong,

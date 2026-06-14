@@ -12,19 +12,7 @@
 </div>
 {% endif %}
 
-<h2 class="h6 text-muted">📝 一問一答（基礎固め）</h2>
-<div class="list-group mb-4">
-    {% for s in basic_sets %}
-    <a href="{% url 'quiz:start' s.id %}" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
-        {{ s.title }}
-        <span class="badge bg-secondary">{{ s.n_questions }}問</span>
-    </a>
-    {% empty %}
-    <div class="list-group-item text-muted">一問一答セットがありません。</div>
-    {% endfor %}
-</div>
-
-<h2 class="h6 text-muted">🎯 模擬試験（シナリオ4択）</h2>
+<h2 class="h6 text-muted">🎯 4択問題</h2>
 <div class="list-group mb-4">
     {% for s in exam_sets %}
     <a href="{% url 'quiz:start' s.id %}" class="list-group-item list-group-item-action py-3 d-flex justify-content-between align-items-center">
@@ -32,7 +20,7 @@
         <span class="badge bg-secondary">{{ s.n_questions }}問</span>
     </a>
     {% empty %}
-    <div class="list-group-item text-muted">模擬試験セットがありません。</div>
+    <div class="list-group-item text-muted">問題セットがありません。</div>
     {% endfor %}
 </div>
 

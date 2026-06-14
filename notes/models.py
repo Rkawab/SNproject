@@ -7,7 +7,7 @@ class Subject(models.Model):
     slug = models.SlugField(unique=True)
     name = models.CharField(max_length=100)
     order = models.IntegerField(default=0)
-    # 模擬試験の合格ライン（SAA=8割）
+    # 4択問題セットの合格ライン（SAA=8割）
     pass_ratio = models.FloatField(default=0.8)
 
     class Meta:

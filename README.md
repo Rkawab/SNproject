@@ -1,6 +1,6 @@
 # StudyNotes（勉強用Webアプリ）
 
-Obsidian保管庫の学習ノート・問題md を取り込み、スマホから「知識検索」「一問一答」「模擬試験」ができる個人用学習アプリ。
+Obsidian保管庫の学習ノート・`【問題】` 付き4択問題mdを取り込み、スマホから知識検索と問題演習ができる個人用学習アプリ。
 
 - 本番URL: `https://household-app-bacon.net/study/`
 - 仕様書: `../.claude/` 配下（OVERVIEW.md / DATABASE.md / SCREENS.md / INFRA.md）

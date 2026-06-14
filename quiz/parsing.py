@@ -1,14 +1,8 @@
-"""一問一答・模擬試験mdのパーサ
+"""`【問題】` 付き4択問題mdのパーサ
 
 書式の前提（.claude/OVERVIEW.md「md書式の前提」参照）:
 
-一問一答:
-    ## ジャンル見出し
-    **Q1.** 問題文
-    > [!success]- 答え：**答えテキスト**
-    > 解説...
-
-模擬試験:
+4択問題（ファイル名に「【問題】」を含むmd。分類は import_content 側）:
     ## 第N問（ジャンル）
     問題文
     - A. 選択肢
@@ -19,9 +13,7 @@
 
 import re
 
-SECTION_RE = re.compile(r"^##\s+(.+)$")
 EXAM_SECTION_RE = re.compile(r"^##\s*第(\d+)問[（(](.*?)[）)]")
-BASIC_Q_RE = re.compile(r"^\*\*Q(\d+)[.．]\*\*\s*(.*)$")
 CHOICE_RE = re.compile(r"^-\s*([A-D])[.．]\s*(.*)$")
 ANSWER_HEAD_RE = re.compile(r"^>\s*\[!success\]-?\s*(.*)$", re.IGNORECASE)
 ANSWER_TEXT_RE = re.compile(r"答え\s*[：:]\s*(.*)$")
@@ -37,60 +29,8 @@ def _collect_callout_body(lines, i):
     return body, i
 
 
-def parse_basic(text):
-    """一問一答mdをパースし、問題のリストを返す。
-
-    戻り値: [{number, genre, question_md, answer, explanation_md}, ...]
-    """
-    lines = text.split("\n")
-    questions = []
-    genre = ""
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-
-        sec = SECTION_RE.match(line)
-        if sec:
-            genre = sec.group(1).strip()
-            i += 1
-            continue
-
-        q = BASIC_Q_RE.match(line)
-        if not q:
-            i += 1
-            continue
-
-        number = int(q.group(1))
-        q_lines = [q.group(2)]
-        i += 1
-        # 答えコールアウトが始まるまでを問題文として収集
-        while i < len(lines) and not ANSWER_HEAD_RE.match(lines[i]) and not BASIC_Q_RE.match(lines[i]):
-            q_lines.append(lines[i])
-            i += 1
-
-        answer = ""
-        explanation_lines = []
-        head = ANSWER_HEAD_RE.match(lines[i]) if i < len(lines) else None
-        if head:
-            am = ANSWER_TEXT_RE.search(head.group(1))
-            if am:
-                # **答え** の強調記号を外してプレーンに
-                answer = am.group(1).replace("**", "").strip()
-            i += 1
-            explanation_lines, i = _collect_callout_body(lines, i)
-
-        questions.append({
-            "number": number,
-            "genre": genre,
-            "question_md": "\n".join(q_lines).strip(),
-            "answer": answer,
-            "explanation_md": "\n".join(explanation_lines).strip(),
-        })
-    return questions
-
-
 def parse_exam(text):
-    """模擬試験mdをパースし、問題のリストを返す。
+    """4択問題mdをパースし、問題のリストを返す。
 
     戻り値: [{number, genre, question_md, choices, answer, explanation_md}, ...]
     """

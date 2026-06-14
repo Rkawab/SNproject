@@ -1,10 +1,10 @@
 """content/ 配下の md をパースして DB へ取り込む
 
 分類ルール（科目に依存しない）:
-- ファイル名に「一問一答」を含む → 一問一答セット
-- ファイル名に「模擬試験」を含む → 模擬試験セット
+- ファイル名に「【問題】」を含む → 4択問題セット
 - それ以外 → 知識ノート
 - フォルダ名に「範囲外」を含む → 範囲外フラグ付きノート
+- フォルダ名に「archive」を含む（退避・旧版置き場）→ 取込対象外
 """
 
 import re
@@ -17,10 +17,20 @@ from django.urls import reverse
 from notes.models import Subject, Folder, Note
 from notes.rendering import strip_frontmatter, extract_title, render_markdown
 from quiz.models import QuestionSet, Question
-from quiz.parsing import parse_basic, parse_exam
+from quiz.parsing import parse_exam
 
 EXCLUDE_DIR = "添付ファイル"
+# 退避・旧版フォルダ（名前に archive を含む）は取込対象外
+ARCHIVE_MARKER = "archive"
 LEADING_NUM_RE = re.compile(r"^(\d+)")
+
+
+def _is_excluded(parts):
+    """パス要素に除外フォルダ（添付ファイル / archive 系）が含まれるか"""
+    for part in parts:
+        if part == EXCLUDE_DIR or ARCHIVE_MARKER in part.lower():
+            return True
+    return False
 
 
 def _leading_number(name, default=999):
@@ -54,12 +64,10 @@ class Command(BaseCommand):
         if created:
             self.stdout.write(f"科目を新規作成: {slug}")
 
-        md_files = [p for p in subject_dir.rglob("*.md") if EXCLUDE_DIR not in p.parts]
-        note_files, basic_files, exam_files = [], [], []
+        md_files = [p for p in subject_dir.rglob("*.md") if not _is_excluded(p.parts)]
+        note_files, exam_files = [], []
         for p in md_files:
-            if "一問一答" in p.stem:
-                basic_files.append(p)
-            elif "模擬試験" in p.stem:
+            if "【問題】" in p.stem:
                 exam_files.append(p)
             else:
                 note_files.append(p)
@@ -110,12 +118,9 @@ class Command(BaseCommand):
         # --- 問題セット ---
         set_stems = set()
         n_questions = 0
-        for path, set_type, parser in (
-            [(p, QuestionSet.TYPE_BASIC, parse_basic) for p in basic_files]
-            + [(p, QuestionSet.TYPE_EXAM, parse_exam) for p in exam_files]
-        ):
+        for path in exam_files:
             body, _tags = strip_frontmatter(path.read_text(encoding="utf-8-sig"))
-            items = parser(body)
+            items = parse_exam(body)
             if not items:
                 self.stdout.write(self.style.WARNING(f"問題を抽出できません（書式確認）: {path.name}"))
                 continue
@@ -124,7 +129,7 @@ class Command(BaseCommand):
                 source_filename=path.stem,
                 defaults={
                     "subject": subject,
-                    "set_type": set_type,
+                    "set_type": QuestionSet.TYPE_EXAM,
                     "title": extract_title(body) or path.stem,
                     "order": _leading_number(path.stem),
                 },

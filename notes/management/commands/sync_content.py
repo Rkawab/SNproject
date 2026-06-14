@@ -12,6 +12,16 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
 EXCLUDE_DIR = "添付ファイル"
+# 退避・旧版フォルダ（名前に archive を含む）は同期対象外
+ARCHIVE_MARKER = "archive"
+
+
+def _is_excluded(parts):
+    """パス要素に除外フォルダ（添付ファイル / archive 系）が含まれるか"""
+    for part in parts:
+        if part == EXCLUDE_DIR or ARCHIVE_MARKER in part.lower():
+            return True
+    return False
 
 
 class Command(BaseCommand):
@@ -34,7 +44,7 @@ class Command(BaseCommand):
             src_files = {
                 p.relative_to(src_dir): p
                 for p in src_dir.rglob("*.md")
-                if EXCLUDE_DIR not in p.parts
+                if not _is_excluded(p.parts)
             }
 
             copied = 0
