@@ -58,7 +58,7 @@ tags: [AWS, SAA, メタ, 学習方針]
 
 優先度順：
 
-1. **VPCコア**：Security Group vs NACL ／ NAT Gateway・Internet Gateway ／ VPCエンドポイント（Gateway/Interface型）。※Transit Gateway/PrivateLightは [[0405_ネットワークとコンテンツ配信]] でカバー済み
+1. **VPCコア**：~~Security Group vs NACL~~（→ [[0408_セキュリティグループとNACL]] で解消） ／ NAT Gateway・Internet Gateway ／ VPCエンドポイント（Gateway/Interface型）。※Transit Gateway/PrivateLightは [[0405_ネットワークとコンテンツ配信]] でカバー済み
 2. **Lambda**（同時実行・コールドスタート等の専用ノート）。※比較は [[0702_Lambda・ECS・RDS・Beanstalk比較]] にあり
 3. **KMS**（S3暗号化で断片的にあるのみ → [[0207_S3の暗号化]]）
 4. **EBS ボリュームタイプ**（gp3/io2/st1/sc1）の単体ノート。※概要は [[0103_EC2のストレージ]]
@@ -72,6 +72,9 @@ tags: [AWS, SAA, メタ, 学習方針]
 ---
 
 ## ✅ 修正済み
+
+### 2026-06-15
+- 不足リスト最優先（VPCコア）の **Security Group vs NACL** を解消 → [[0408_セキュリティグループとNACL]] を新規作成（適用単位／ステートフル・レス／許可・拒否／評価順／デフォルト挙動の対比表、SAA出題パターン早見を整理）。[[1604_ネットワーク防御]] のリンクも本ノートへ張り替え。
 
 ### 2026-06-11
 - 不足リストの **Redshift** を解消 → [[1113_Amazon Redshift]] を新規作成（Redshift Spectrum・Athenaとの違い・OLTP/OLAP比較・可用性の注意点を整理）。[[1101_AWS分析サービス一覧]] の目次にも追加。
