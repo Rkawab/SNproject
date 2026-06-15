@@ -17,11 +17,12 @@
 </div>
 
 <!-- A〜D をタップで回答 -->
-<form method="post" action="{{ answer_url }}">
+<form method="post" action="{{ answer_url }}" id="quiz-answer-form">
     {% csrf_token %}
+    <input type="hidden" name="choice" id="quiz-choice" value="">
     <div class="d-grid gap-2">
         {% for letter, text in q.choices.items %}
-        <button type="submit" name="choice" value="{{ letter }}" class="btn btn-outline-study choice-btn">
+        <button type="submit" data-choice="{{ letter }}" class="btn btn-outline-study choice-btn">
             <span class="fw-bold me-2">{{ letter }}.</span> {{ text }}
         </button>
         {% endfor %}
@@ -33,4 +34,58 @@
        class="btn btn-link text-muted"
        onclick="return confirm('ここまでの結果を表示して中断しますか？');">中断して結果を見る</a>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    // 二重送信防止：1問につきPOSTは1回だけにする。
+    var form = document.getElementById('quiz-answer-form');
+    var choice = document.getElementById('quiz-choice');
+    if (!form) return;
+
+    function unlock() {
+      form.dataset.submitted = '';
+      choice.value = '';
+      form.querySelectorAll('.choice-btn').forEach(function (btn) {
+        btn.disabled = false;
+        btn.blur();
+      });
+    }
+
+    form.querySelectorAll('.choice-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        if (form.dataset.submitted === 'true') {
+          e.preventDefault();
+          return;
+        }
+        choice.value = btn.dataset.choice;
+      });
+
+      // iOS Safariでタッチ開始後にスクロールへ移った場合、押下色を残さない。
+      btn.addEventListener('touchmove', function () {
+        btn.blur();
+      }, { passive: true });
+      btn.addEventListener('touchcancel', function () {
+        btn.blur();
+      }, { passive: true });
+    });
+
+    form.addEventListener('submit', function (e) {
+      if (form.dataset.submitted === 'true' || !choice.value) {
+        e.preventDefault();
+        return;
+      }
+      form.dataset.submitted = 'true';
+      form.querySelectorAll('.choice-btn').forEach(function (btn) {
+        btn.disabled = true;
+      });
+    });
+
+    // 戻る操作でBFCacheから復元された場合はロックを解除する
+    window.addEventListener('pageshow', function (e) {
+      if (e.persisted || form.dataset.submitted === 'true') unlock();
+    });
+  })();
+</script>
 {% endblock %}

@@ -14,7 +14,7 @@
     border-color: var(--study-primary);
     color: #fff;
 }
-.btn-study:hover, .btn-study:focus {
+.btn-study:focus {
     background-color: var(--study-primary-dark);
     border-color: var(--study-primary-dark);
     color: #fff;
@@ -23,9 +23,20 @@
     border-color: var(--study-primary);
     color: var(--study-primary);
 }
-.btn-outline-study:hover {
-    background-color: var(--study-primary);
-    color: #fff;
+
+/* hover はマウス等のホバー可能な端末だけに適用する。
+   タッチ端末（iPhone等）では mouseout が無く :hover が貼り付き、
+   タップ→スクロールで遷移しなかった時に色が反転したまま残るため。 */
+@media (hover: hover) {
+    .btn-study:hover {
+        background-color: var(--study-primary-dark);
+        border-color: var(--study-primary-dark);
+        color: #fff;
+    }
+    .btn-outline-study:hover {
+        background-color: var(--study-primary);
+        color: #fff;
+    }
 }
 
 .text-study { color: var(--study-primary); }
@@ -45,6 +56,7 @@
     text-align: left;
     white-space: normal;
     width: 100%;
+    touch-action: pan-y;
 }
 
 /* ===== Obsidianコールアウト再現 ===== */

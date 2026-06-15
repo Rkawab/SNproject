@@ -118,8 +118,15 @@ def question(request, set_id, n):
 @login_required
 def answer(request, set_id, n):
     run = _get_run(request, set_id)
-    if not run or n != len(run["results"]) + 1:
+    if not run:
         return redirect(_url(set_id, "question", n))
+    answered = len(run["results"])
+    if n <= answered:
+        # 既に回答済み（二重送信など）→ その問題の判定画面へ戻す。
+        # ここで question へ飛ばすと次問題へ遷移してしまうため feedback を返す。
+        return redirect(_url(set_id, "feedback", n))
+    if n != answered + 1:
+        return redirect(_url(set_id, "question", answered + 1))
 
     q = get_object_or_404(Question, pk=run["ids"][n - 1])
 
