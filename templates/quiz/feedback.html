@@ -13,7 +13,7 @@
 {% if correct %}
 <div class="alert alert-success fw-bold fs-5 text-center">⭕ 正解！</div>
 {% else %}
-<div class="alert alert-danger fw-bold fs-5 text-center">❌ 不正解（正解は {{ q.answer }}）</div>
+<div class="alert alert-danger fw-bold fs-5 text-center">❌ 不正解（正解は {{ answer_disp }}）</div>
 {% endif %}
 
 <div class="card shadow-sm mb-3">
@@ -23,21 +23,21 @@
 </div>
 
 <div class="d-grid gap-2 mb-3">
-    {% for letter, text in q.choices.items %}
+    {% for c in choices %}
     <div class="btn choice-btn text-start
-        {% if letter == q.answer %}btn-success
-        {% elif letter == chosen %}btn-danger
+        {% if c.orig == q.answer %}btn-success
+        {% elif c.orig == chosen %}btn-danger
         {% else %}btn-outline-secondary{% endif %}" style="pointer-events: none;">
-        <span class="fw-bold me-2">{{ letter }}.</span> {{ text }}
-        {% if letter == q.answer %} ✔{% elif letter == chosen %} ✘{% endif %}
+        <span class="fw-bold me-2">{{ c.letter }}.</span> {{ c.text }}
+        {% if c.orig == q.answer %} ✔{% elif c.orig == chosen %} ✘{% endif %}
     </div>
     {% endfor %}
 </div>
 
-{% if q.explanation_html %}
+{% if explanation_html %}
 <div class="callout callout-info">
     <div class="callout-title">解説</div>
-    <div class="callout-body note-content">{{ q.explanation_html|safe }}</div>
+    <div class="callout-body note-content">{{ explanation_html|safe }}</div>
 </div>
 {% endif %}
 

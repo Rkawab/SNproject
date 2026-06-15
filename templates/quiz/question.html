@@ -21,9 +21,9 @@
     {% csrf_token %}
     <input type="hidden" name="choice" id="quiz-choice" value="">
     <div class="d-grid gap-2">
-        {% for letter, text in q.choices.items %}
-        <button type="submit" data-choice="{{ letter }}" class="btn btn-outline-study choice-btn">
-            <span class="fw-bold me-2">{{ letter }}.</span> {{ text }}
+        {% for c in choices %}
+        <button type="submit" data-choice="{{ c.orig }}" class="btn btn-outline-study choice-btn">
+            <span class="fw-bold me-2">{{ c.letter }}.</span> {{ c.text }}
         </button>
         {% endfor %}
     </div>

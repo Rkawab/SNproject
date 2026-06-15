@@ -46,11 +46,11 @@
             <div class="accordion-body note-content">
                 {{ w.q.question_html|safe }}
                 <hr>
-                <p class="mb-1">正解: <strong>{{ w.q.answer }}</strong>{% if w.chosen %} ／ 自分の回答: {{ w.chosen }}{% endif %}</p>
-                {% if w.q.explanation_html %}
+                <p class="mb-1">正解: <strong>{{ w.answer_disp }}</strong>{% if w.chosen_disp %} ／ 自分の回答: {{ w.chosen_disp }}{% endif %}</p>
+                {% if w.explanation_html %}
                 <div class="callout callout-info">
                     <div class="callout-title">解説</div>
-                    <div class="callout-body">{{ w.q.explanation_html|safe }}</div>
+                    <div class="callout-body">{{ w.explanation_html|safe }}</div>
                 </div>
                 {% endif %}
             </div>

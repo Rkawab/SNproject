@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 
 from notes.views import get_current_subject
 from .models import QuestionSet, Question, AnswerLog
-from .services import wrong_question_ids
+from .services import wrong_question_ids, shuffle_order, build_display, remap_letters
 
 
 # ---- セッション内の演習状態（run）管理 ----------------------------------
@@ -29,6 +29,20 @@ def _get_run(request, set_id):
 def _save_run(request, set_id, run):
     request.session[_run_key(set_id)] = run
     request.session.modified = True
+
+
+def _question_order(run, q):
+    """この問題の選択肢シャッフル順（表示順に並んだ元記号リスト）を run から取得。
+    未生成なら生成して run に保存する（保存はキー追加のみ。呼び出し側で _save_run する）。
+    """
+    orders = run.setdefault("orders", {})
+    key = str(q.id)
+    keys = list((q.choices or {}).keys())
+    saved = orders.get(key)
+    if not saved or sorted(saved) != sorted(keys):
+        saved = shuffle_order(keys)
+        orders[key] = saved
+    return saved
 
 
 def _url(set_id, name, n=None):
@@ -108,9 +122,13 @@ def question(request, set_id, n):
         return redirect(_url(set_id, "question", answered + 1))
 
     q = get_object_or_404(Question, pk=run["ids"][n - 1])
+    order = _question_order(run, q)
+    _save_run(request, set_id, run)  # この問題の表示順を確定・保存
+    choices, _ = build_display(q.choices, order)
     return render(request, "quiz/question.html", {
         "q": q, "n": n, "total": total, "set_id": set_id,
         "answer_url": _url(set_id, "answer", n),
+        "choices": choices,
     })
 
 
@@ -153,9 +171,16 @@ def feedback(request, set_id, n):
     res = run["results"][n - 1]
     q = get_object_or_404(Question, pk=res["qid"])
     total = len(run["ids"])
+    order = _question_order(run, q)
+    _save_run(request, set_id, run)
+    choices, orig_to_disp = build_display(q.choices, order)
     return render(request, "quiz/feedback.html", {
         "q": q, "n": n, "total": total, "set_id": set_id,
-        "chosen": res["chosen"], "correct": res["correct"],
+        "choices": choices,
+        "chosen": res["chosen"],                       # 元記号（ハイライト判定用）
+        "answer_disp": orig_to_disp.get(q.answer, q.answer),  # 表示記号
+        "explanation_html": remap_letters(q.explanation_html, orig_to_disp),
+        "correct": res["correct"],
         "next_url": _url(set_id, "question", n + 1) if n < total else _url(set_id, "result"),
         "is_last": n >= total,
     })
@@ -176,6 +201,7 @@ def result(request, set_id):
     ratio = n_correct / total if total else 0
 
     # ジャンル別内訳
+    orders = run.get("orders", {})
     genre_stats = {}
     wrong = []
     for r in results:
@@ -186,7 +212,15 @@ def result(request, set_id):
         g["total"] += 1
         g["correct"] += int(r["correct"])
         if not r["correct"]:
-            wrong.append({"q": q, "chosen": r["chosen"]})
+            # 演習中に見たシャッフル順と同じ記号で復習表示する
+            order = orders.get(str(q.id)) or list((q.choices or {}).keys())
+            _, orig_to_disp = build_display(q.choices, order)
+            wrong.append({
+                "q": q,
+                "answer_disp": orig_to_disp.get(q.answer, q.answer),
+                "chosen_disp": orig_to_disp.get(r["chosen"], r["chosen"]),
+                "explanation_html": remap_letters(q.explanation_html, orig_to_disp),
+            })
 
     subject = qset.subject if qset else get_current_subject(request)[0]
     pass_ratio = subject.pass_ratio if subject else 0.8
