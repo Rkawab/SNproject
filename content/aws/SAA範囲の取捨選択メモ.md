@@ -58,11 +58,13 @@ tags: [AWS, SAA, メタ, 学習方針]
 
 優先度順：
 
-1. **VPCコア**：~~Security Group vs NACL~~（→ [[0408_セキュリティグループとNACL]] で解消） ／ NAT Gateway・Internet Gateway ／ VPCエンドポイント（Gateway/Interface型）。※Transit Gateway/PrivateLightは [[0405_ネットワークとコンテンツ配信]] でカバー済み
-2. **Lambda**（同時実行・コールドスタート等の専用ノート）。※比較は [[0702_Lambda・ECS・RDS・Beanstalk比較]] にあり
-3. **KMS**（S3暗号化で断片的にあるのみ → [[0207_S3の暗号化]]）
-4. **EBS ボリュームタイプ**（gp3/io2/st1/sc1）の単体ノート。※概要は [[0103_EC2のストレージ]]
-5. **Aurora 詳細**（Serverless / Global Database）。※基本は [[0301_RDS]] 内
+1. **Lambda**（同時実行・コールドスタート等の専用ノート）。※比較は [[0702_Lambda・ECS・RDS・Beanstalk比較]] にあり
+2. **KMS**（S3暗号化で断片的にあるのみ → [[0207_S3の暗号化]]）
+3. **EBS ボリュームタイプ**（gp3/io2/st1/sc1）の単体ノート。※概要は [[0103_EC2のストレージ]]
+4. **Aurora 詳細**（Serverless / Global Database）。※基本は [[0301_RDS]] 内
+
+> [!success] VPCコア（旧不足#1）は解消済み
+> Security Group vs NACL（[[0408_セキュリティグループとNACL]]）に続き、**NAT Gateway・Internet Gateway・VPCエンドポイント（Gateway/Interface型）** も [[0409_IGW・NAT Gateway・VPCエンドポイント]] で整理し、VPCコアの不足は全て埋まった（2026-06-16）。Transit Gateway/PrivateLinkは [[0405_ネットワークとコンテンツ配信]] でカバー済み。
 
 > [!tip] 2026-06-07時点でカバー済みになった旧「不足」項目
 > - **CloudFront / Direct Connect / VPN / Transit Gateway / PrivateLink / Global Accelerator** → [[0405_ネットワークとコンテンツ配信]]
@@ -72,6 +74,9 @@ tags: [AWS, SAA, メタ, 学習方針]
 ---
 
 ## ✅ 修正済み
+
+### 2026-06-16
+- 不足リスト最優先（VPCコア）の残り **NAT Gateway・Internet Gateway・VPCエンドポイント** を解消 → [[0409_IGW・NAT Gateway・VPCエンドポイント]] を新規作成（IGW＝双方向の玄関／NAT GW＝片方向の出口・AZごと冗長・NATインスタンス比較／VPCエンドポイントのGateway型(S3・DynamoDB・無料)vs Interface型(PrivateLink・有料)、決定フローとコスト最適化の典型問題を整理）。これでVPCコアの不足は全て解消。
 
 ### 2026-06-15
 - 不足リスト最優先（VPCコア）の **Security Group vs NACL** を解消 → [[0408_セキュリティグループとNACL]] を新規作成（適用単位／ステートフル・レス／許可・拒否／評価順／デフォルト挙動の対比表、SAA出題パターン早見を整理）。[[1604_ネットワーク防御]] のリンクも本ノートへ張り替え。
