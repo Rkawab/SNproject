@@ -58,6 +58,14 @@
     width: 100%;
     touch-action: pan-y;
 }
+.choice-input:checked + .choice-btn {
+    background-color: var(--study-primary);
+    border-color: var(--study-primary);
+    color: #fff;
+}
+#quiz-answer-form.is-submitted .choice-btn {
+    pointer-events: none;
+}
 
 /* ===== Obsidianコールアウト再現 ===== */
 .callout {

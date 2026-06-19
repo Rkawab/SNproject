@@ -11,7 +11,16 @@ from django.views.decorators.http import require_POST
 
 from notes.views import get_current_subject
 from .models import QuestionSet, Question, AnswerLog
-from .services import wrong_question_ids, shuffle_order, build_display, remap_letters
+from .services import (
+    answer_letters,
+    format_answer,
+    is_correct_answer,
+    normalize_answer,
+    wrong_question_ids,
+    shuffle_order,
+    build_display,
+    remap_letters,
+)
 
 
 # ---- セッション内の演習状態（run）管理 ----------------------------------
@@ -148,11 +157,12 @@ def answer(request, set_id, n):
 
     q = get_object_or_404(Question, pk=run["ids"][n - 1])
 
-    chosen = request.POST.get("choice", "")
-    if chosen not in (q.choices or {}):
+    chosen = normalize_answer(request.POST.getlist("choice"))
+    valid_choices = set((q.choices or {}).keys())
+    if not chosen or not answer_letters(chosen).issubset(valid_choices):
         messages.warning(request, "選択肢を選んでください。")
         return redirect(_url(set_id, "question", n))
-    correct = chosen == q.answer
+    correct = is_correct_answer(chosen, q.answer)
 
     AnswerLog.objects.create(question=q, is_correct=correct, chosen=chosen)
     run["results"].append({"qid": q.id, "correct": correct, "chosen": chosen})
@@ -174,11 +184,15 @@ def feedback(request, set_id, n):
     order = _question_order(run, q)
     _save_run(request, set_id, run)
     choices, orig_to_disp = build_display(q.choices, order)
+    answer_orig = sorted(answer_letters(q.answer))
+    chosen_orig = sorted(answer_letters(res["chosen"]))
     return render(request, "quiz/feedback.html", {
         "q": q, "n": n, "total": total, "set_id": set_id,
         "choices": choices,
-        "chosen": res["chosen"],                       # 元記号（ハイライト判定用）
-        "answer_disp": orig_to_disp.get(q.answer, q.answer),  # 表示記号
+        "chosen": res["chosen"],                       # 元記号セット（ログ表示用）
+        "answer_orig": answer_orig,                    # 元記号（ハイライト判定用）
+        "chosen_orig": chosen_orig,
+        "answer_disp": format_answer(q.answer, orig_to_disp),  # 表示記号
         "explanation_html": remap_letters(q.explanation_html, orig_to_disp),
         "correct": res["correct"],
         "next_url": _url(set_id, "question", n + 1) if n < total else _url(set_id, "result"),
@@ -217,8 +231,8 @@ def result(request, set_id):
             _, orig_to_disp = build_display(q.choices, order)
             wrong.append({
                 "q": q,
-                "answer_disp": orig_to_disp.get(q.answer, q.answer),
-                "chosen_disp": orig_to_disp.get(r["chosen"], r["chosen"]),
+                "answer_disp": format_answer(q.answer, orig_to_disp),
+                "chosen_disp": format_answer(r["chosen"], orig_to_disp),
                 "explanation_html": remap_letters(q.explanation_html, orig_to_disp),
             })
 

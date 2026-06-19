@@ -2,6 +2,7 @@
 
 同期元は content/sources.json に科目slug→保管庫パスで定義する。
 例: {"aws": "D:/Codespace/03_Notes/02_学習/AWS"}
+除外対象は content/exclude.json と md frontmatter tags で定義する。
 """
 
 import json
@@ -10,18 +11,19 @@ from pathlib import Path
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
-
-EXCLUDE_DIR = "添付ファイル"
-# 退避・旧版フォルダ（名前に archive を含む）は同期対象外
-ARCHIVE_MARKER = "archive"
+from notes.content_rules import load_exclude_manifest, should_exclude_md
 
 
-def _is_excluded(parts):
-    """パス要素に除外フォルダ（添付ファイル / archive 系）が含まれるか"""
-    for part in parts:
-        if part == EXCLUDE_DIR or ARCHIVE_MARKER in part.lower():
-            return True
-    return False
+def _source_path(src):
+    """Windowsの `D:/...` 指定をWSL上でも読めるようにする。"""
+    path = Path(src)
+    if path.is_dir():
+        return path
+    if len(src) >= 3 and src[1:3] == ":/":
+        wsl_path = Path("/mnt") / src[0].lower() / src[3:]
+        if wsl_path.is_dir():
+            return wsl_path
+    return path
 
 
 class Command(BaseCommand):
@@ -34,9 +36,10 @@ class Command(BaseCommand):
             raise CommandError(f"{sources_path} がありません")
 
         sources = json.loads(sources_path.read_text(encoding="utf-8"))
+        excludes = load_exclude_manifest(content_dir)
 
         for slug, src in sources.items():
-            src_dir = Path(src)
+            src_dir = _source_path(src)
             if not src_dir.is_dir():
                 raise CommandError(f"同期元が見つかりません: {src_dir}（科目 {slug}）")
             dest_dir = content_dir / slug
@@ -44,7 +47,7 @@ class Command(BaseCommand):
             src_files = {
                 p.relative_to(src_dir): p
                 for p in src_dir.rglob("*.md")
-                if not _is_excluded(p.parts)
+                if not should_exclude_md(p, src_dir, slug, excludes)
             }
 
             copied = 0

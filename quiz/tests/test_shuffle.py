@@ -32,6 +32,11 @@ class RemapLettersTests(TestCase):
         self.assertEqual(remap_letters(html, self.orig_to_disp),
                          "<p>答え：<strong>C</strong>（EFS）</p>")
 
+    def test_remaps_answer_strong_letter_group(self):
+        html = "<p>答え：<strong>A, C</strong></p>"
+        self.assertEqual(remap_letters(html, self.orig_to_disp),
+                         "<p>答え：<strong>A, B</strong></p>")
+
     def test_remaps_reason_bullet_markers_including_group(self):
         html = ("<p>答え：<strong>B</strong>（EFS）<br />\n"
                 "- A：理由A<br />\n- C：理由C<br />\n- D：理由D</p>")
@@ -47,6 +52,12 @@ class RemapLettersTests(TestCase):
         # A→B, B→C, D→D
         self.assertEqual(remap_letters(html, self.orig_to_disp),
                          "<p>- B・C・D：いずれもRDB</p>")
+
+    def test_remaps_html_list_reason_marker(self):
+        html = "<ul><li>A, C：正解</li><li>D：不正解</li></ul>"
+        out = remap_letters(html, self.orig_to_disp)
+        self.assertIn("<li>B, A：正解</li>", out)
+        self.assertIn("<li>D：不正解</li>", out)
 
     def test_remaps_slash_grouped_reason_preserving_separator(self):
         # 区切りが半角スラッシュのグループ（- A/C：）も区切りを保って置換
@@ -126,6 +137,6 @@ class QuestionDisplayTests(TestCase):
         # 全選択肢が表示される
         for text in ("Alpha", "Beta", "Gamma", "Delta"):
             self.assertIn(text, html)
-        # 採点は元記号で行うため data-choice には元記号が入る
+        # 採点は元記号で行うため value には元記号が入る
         for orig in ("A", "B", "C", "D"):
-            self.assertIn(f'data-choice="{orig}"', html)
+            self.assertIn(f'value="{orig}"', html)

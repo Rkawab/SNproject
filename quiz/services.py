@@ -12,11 +12,12 @@ from .models import Question, AnswerLog
 
 DISPLAY_LETTERS = "ABCDEFGHIJ"
 
-# 答え記号: <strong>X</strong>（単独大文字boldは答え記号のみ＝誤爆しない）
-_STRONG_LETTER_RE = re.compile(r"(<strong>)([A-Z])(</strong>)")
-# 不正解理由マーカー: 行頭 '- X：' / グループ '- A・B・D：' '- A/C：'（区切りは ・ or /、
+# 答え記号: <strong>X</strong> / <strong>A, C</strong>
+_STRONG_LETTER_RE = re.compile(r"(<strong>)([A-Z](?:\s*[,、・/]\s*[A-Z])*)(</strong>)")
+# 理由マーカー: 行頭 '- X：' またはHTMLリスト化後の '<li>X：'。
+# グループ '- A・B・D：' '- A/C：' '- A, C：'（区切りは ・ or / or ,、
 # 後ろは全角/半角コロン）。グループ内の各記号を個別に置換し、区切り文字は保持する。
-_REASON_MARK_RE = re.compile(r"(?<=- )([A-Z](?:[・/][A-Z])*)(?=[：:])")
+_REASON_MARK_RE = re.compile(r"(?:(?<=- )|(?<=<li>))([A-Z](?:\s*[,、・/]\s*[A-Z])*)(?=[：:])")
 _SINGLE_LETTER_RE = re.compile(r"[A-Z]")
 
 
@@ -42,6 +43,32 @@ def build_display(choices, order):
     return items, orig_to_disp
 
 
+def answer_letters(value):
+    """`B` / `A,C` / ["A", "C"] を正答セットとして扱う。"""
+    if not value:
+        return set()
+    if isinstance(value, str):
+        return {letter for letter in _SINGLE_LETTER_RE.findall(value.upper()) if letter in "ABCD"}
+    return {str(letter).upper() for letter in value if str(letter).upper() in "ABCD"}
+
+
+def normalize_answer(value):
+    """保存用に `A,C` のようなカンマ区切りへ正規化する。"""
+    return ",".join(sorted(answer_letters(value)))
+
+
+def format_answer(value, orig_to_disp=None):
+    """表示用に `A, C` のような読みやすい記号列へ変換する。"""
+    letters = sorted(answer_letters(value))
+    if orig_to_disp:
+        letters = sorted(orig_to_disp.get(letter, letter) for letter in letters)
+    return ", ".join(letters)
+
+
+def is_correct_answer(chosen, answer):
+    return answer_letters(chosen) == answer_letters(answer)
+
+
 def remap_letters(html, orig_to_disp):
     """解説HTML内の選択肢記号参照を表示記号へ置換する。
 
@@ -55,10 +82,10 @@ def remap_letters(html, orig_to_disp):
         return html
 
     def _strong(m):
-        return m.group(1) + orig_to_disp.get(m.group(2), m.group(2)) + m.group(3)
+        return m.group(1) + format_answer(m.group(2), orig_to_disp) + m.group(3)
 
     def _mark(m):
-        # 区切り文字（・ or /）を保ったまま各記号だけ置換する
+        # 区切り文字（・ or / or , or 、）を保ったまま各記号だけ置換する
         return _SINGLE_LETTER_RE.sub(lambda mm: orig_to_disp.get(mm.group(0), mm.group(0)), m.group(1))
 
     html = _STRONG_LETTER_RE.sub(_strong, html)

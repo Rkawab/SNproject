@@ -63,6 +63,25 @@ class ParseExamTests(unittest.TestCase):
         self.assertIn("S3はオブジェクトストレージ", questions[0]["explanation_md"])
         self.assertEqual("B", questions[1]["answer"])
 
+    def test_parses_multiple_answer_letters(self):
+        text = """\
+## 第1問（可用性）
+次の要件を満たす選択肢を2つ選べ。
+
+- A. Application Load Balancer
+- B. Auto Scaling group
+- C. NAT Gateway
+- D. AWS Artifact
+
+> [!success]- 答え：**A, B**
+> - A：正解。
+> - B：正解。
+"""
+
+        questions = parse_exam(text)
+
+        self.assertEqual("A,B", questions[0]["answer"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -8,6 +8,7 @@
     - A. 選択肢
     - B. 選択肢
     > [!success]- 答え：**B**（補足）
+    > [!success]- 答え：**A, C**（複数正答）
     > 解説...
 """
 
@@ -17,7 +18,9 @@ EXAM_SECTION_RE = re.compile(r"^##\s*第(\d+)問[（(](.*?)[）)]")
 CHOICE_RE = re.compile(r"^-\s*([A-D])[.．]\s*(.*)$")
 ANSWER_HEAD_RE = re.compile(r"^>\s*\[!success\]-?\s*(.*)$", re.IGNORECASE)
 ANSWER_TEXT_RE = re.compile(r"答え\s*[：:]\s*(.*)$")
-EXAM_ANSWER_LETTER_RE = re.compile(r"\*\*([A-D])\*\*")
+ANSWER_BOLD_RE = re.compile(r"\*\*([^*]+)\*\*")
+ANSWER_GROUP_RE = re.compile(r"^\s*[A-D](?:\s*[,、・/]\s*[A-D])*\s*$", re.IGNORECASE)
+ANSWER_LETTER_RE = re.compile(r"[A-D]", re.IGNORECASE)
 
 
 def _collect_callout_body(lines, i):
@@ -27,6 +30,24 @@ def _collect_callout_body(lines, i):
         body.append(re.sub(r"^>\s?", "", lines[i]))
         i += 1
     return body, i
+
+
+def _normalize_answer_letters(letters):
+    ordered = []
+    for letter in letters:
+        letter = letter.upper()
+        if letter in "ABCD" and letter not in ordered:
+            ordered.append(letter)
+    return ",".join(sorted(ordered))
+
+
+def _extract_answer(text):
+    """答え行の bold 記号から `B` / `A,C` を抽出する。"""
+    letters = []
+    for value in ANSWER_BOLD_RE.findall(text):
+        if ANSWER_GROUP_RE.match(value):
+            letters.extend(ANSWER_LETTER_RE.findall(value))
+    return _normalize_answer_letters(letters)
 
 
 def parse_exam(text):
@@ -73,9 +94,9 @@ def parse_exam(text):
 
         head = ANSWER_HEAD_RE.match(line)
         if head:
-            lm = EXAM_ANSWER_LETTER_RE.search(head.group(1))
-            if lm:
-                current["answer"] = lm.group(1)
+            answer = _extract_answer(head.group(1))
+            if answer:
+                current["answer"] = answer
             # コールアウト1行目の補足（**B**（NACL）等）も解説の先頭に含める
             extra = ANSWER_TEXT_RE.search(head.group(1))
             first = f"答え：{extra.group(1)}" if extra else head.group(1)

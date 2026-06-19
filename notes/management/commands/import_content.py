@@ -5,6 +5,7 @@
 - それ以外 → 知識ノート
 - フォルダ名に「範囲外」を含む → 範囲外フラグ付きノート
 - フォルダ名に「archive」を含む（退避・旧版置き場）→ 取込対象外
+- content/exclude.json または frontmatter tags の sync-exclude / アプリ同期除外 → 取込対象外
 """
 
 import re
@@ -14,23 +15,13 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.urls import reverse
 
+from notes.content_rules import load_exclude_manifest, should_exclude_md
 from notes.models import Subject, Folder, Note
 from notes.rendering import strip_frontmatter, extract_title, render_markdown
 from quiz.models import QuestionSet, Question
 from quiz.parsing import parse_exam
 
-EXCLUDE_DIR = "添付ファイル"
-# 退避・旧版フォルダ（名前に archive を含む）は取込対象外
-ARCHIVE_MARKER = "archive"
 LEADING_NUM_RE = re.compile(r"^(\d+)")
-
-
-def _is_excluded(parts):
-    """パス要素に除外フォルダ（添付ファイル / archive 系）が含まれるか"""
-    for part in parts:
-        if part == EXCLUDE_DIR or ARCHIVE_MARKER in part.lower():
-            return True
-    return False
 
 
 def _leading_number(name, default=999):
@@ -52,10 +43,11 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f"{content_dir} がありません。先に sync_content を実行してください。"))
             return
 
+        excludes = load_exclude_manifest(content_dir)
         for subject_dir in sorted(p for p in content_dir.iterdir() if p.is_dir()):
-            self._import_subject(subject_dir)
+            self._import_subject(subject_dir, excludes)
 
-    def _import_subject(self, subject_dir):
+    def _import_subject(self, subject_dir, excludes):
         slug = subject_dir.name
         subject, created = Subject.objects.get_or_create(
             slug=slug,
@@ -64,7 +56,10 @@ class Command(BaseCommand):
         if created:
             self.stdout.write(f"科目を新規作成: {slug}")
 
-        md_files = [p for p in subject_dir.rglob("*.md") if not _is_excluded(p.parts)]
+        md_files = [
+            p for p in subject_dir.rglob("*.md")
+            if not should_exclude_md(p, subject_dir, slug, excludes)
+        ]
         note_files, exam_files = [], []
         for p in md_files:
             if "【問題】" in p.stem:

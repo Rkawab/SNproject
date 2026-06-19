@@ -25,11 +25,11 @@
 <div class="d-grid gap-2 mb-3">
     {% for c in choices %}
     <div class="btn choice-btn text-start
-        {% if c.orig == q.answer %}btn-success
-        {% elif c.orig == chosen %}btn-danger
+        {% if c.orig in answer_orig %}btn-success
+        {% elif c.orig in chosen_orig %}btn-danger
         {% else %}btn-outline-secondary{% endif %}" style="pointer-events: none;">
         <span class="fw-bold me-2">{{ c.letter }}.</span> {{ c.text }}
-        {% if c.orig == q.answer %} ✔{% elif c.orig == chosen %} ✘{% endif %}
+        {% if c.orig in answer_orig %} ✔{% elif c.orig in chosen_orig %} ✘{% endif %}
     </div>
     {% endfor %}
 </div>
