@@ -102,13 +102,19 @@ class QuizCustomStartTests(TestCase):
             question_html="<p>q</p>", choices={"A": "a", "B": "b"}, answer="A",
         )
 
-    def test_top_renders_question_set_section(self):
+    def test_top_renders_nested_level_and_set_tree(self):
         resp = self.client.get(reverse("quiz:top"))
         self.assertEqual(resp.status_code, 200)
         html = resp.content.decode()
-        self.assertIn("番号（ファイル）", html)
+        # 親＝レベル（series）
+        self.assertIn('name="level" value="1"', html)
+        self.assertIn('name="level" value="3"', html)
+        # 子＝番号（ファイル＝QuestionSet）
         self.assertIn('name="set" value="%d"' % self.set1.id, html)
         self.assertIn('name="set" value="%d"' % self.set3.id, html)
+        # 親子のひも付け（JS同期用クラス）
+        self.assertIn("parent-level", html)
+        self.assertIn("child-set", html)
 
     def test_filters_by_level_and_category(self):
         resp = self.client.post(reverse("quiz:start"), {

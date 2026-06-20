@@ -72,20 +72,11 @@ def _url(mode, name, n=None):
 
 @login_required
 def top(request):
-    """演習トップ＝カスタム出題ビルダー。レベル・分野ごとの件数を出して選ばせる。"""
+    """演習トップ＝カスタム出題ビルダー。レベル→番号の入れ子と分野ごとの件数を出して選ばせる。"""
     subject, subjects = get_current_subject(request)
-    levels, categories, set_groups, review_count, total = [], [], [], 0, 0
+    level_groups, categories, review_count, total = [], [], 0, 0
     if subject:
         base = Question.objects.filter(question_set__subject=subject)
-
-        # レベル（出題タイプ）別の件数
-        series_counts = {
-            row["question_set__series"]: row["n"]
-            for row in base.values("question_set__series").annotate(n=Count("id"))
-        }
-        for s in sorted(series_counts):
-            if series_counts[s]:
-                levels.append({"value": s, "label": series_label(s), "count": series_counts[s]})
 
         # 分野別の件数（CATEGORY_ORDER の順に並べ、未知の分野→その後、未分類→末尾）
         order_index = {name: i for i, name in enumerate(CATEGORY_ORDER)}
@@ -100,27 +91,31 @@ def top(request):
             })
         categories = sorted(cats, key=lambda c: (c["order"], c["label"]))
 
-        # 問題セット（ファイル）別の件数。レベル（series）ごとにまとめて選ばせる。
-        # 最初に作った番号を外して新しい番号だけ解く、といった使い方を想定。
-        set_group_map = {}
+        # レベル（出題タイプ）→ 番号（ファイル＝QuestionSet）の入れ子。
+        # レベルのチェックは配下の番号を一括トグルする「親」、番号は個別の「子」。
+        # 親=level / 子=set を別々にPOSTし、start で series と question_set_id を
+        # それぞれAND条件にする（古い番号だけ外す／特定レベルだけ解く を1UIで両立）。
+        group_map = {}
         for s in (
             QuestionSet.objects.filter(subject=subject)
             .annotate(n=Count("questions"))
             .filter(n__gt=0)
             .order_by("order", "source_filename")
         ):
-            g = set_group_map.setdefault(
-                s.series, {"series": s.series, "label": series_label(s.series), "sets": []}
+            g = group_map.setdefault(
+                s.series,
+                {"series": s.series, "label": series_label(s.series), "count": 0, "sets": []},
             )
             g["sets"].append({"value": s.id, "label": s.source_filename, "count": s.n})
-        set_groups = [set_group_map[k] for k in sorted(set_group_map)]
+            g["count"] += s.n
+        level_groups = [group_map[k] for k in sorted(group_map)]
 
-        total = sum(item["count"] for item in levels)
+        total = sum(g["count"] for g in level_groups)
         review_count = len(wrong_question_ids(subject))
 
     return render(request, "quiz/top.html", {
         "subject": subject, "subjects": subjects,
-        "levels": levels, "categories": categories, "set_groups": set_groups,
+        "level_groups": level_groups, "categories": categories,
         "total_count": total, "review_count": review_count,
         "count_choices": [10, 20, 30],
     })

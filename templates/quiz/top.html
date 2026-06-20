@@ -16,21 +16,34 @@
 <form method="post" action="{% url 'quiz:start' %}">
     {% csrf_token %}
 
-    {# ----- レベル（出題タイプ） ----- #}
+    {# ----- レベル（出題タイプ）→ 番号（ファイル）の入れ子 ----- #}
     <div class="d-flex justify-content-between align-items-center mt-2 mb-1">
-        <h2 class="h6 text-muted mb-0">📚 レベル（出題タイプ）</h2>
+        <h2 class="h6 text-muted mb-0">📚 レベル / 番号</h2>
         <button type="button" class="btn btn-sm btn-link p-0 toggle-all" data-group="level">全選択/解除</button>
     </div>
     <div class="card shadow-sm mb-3">
         <div class="list-group list-group-flush">
-            {% for lv in levels %}
+            {% for g in level_groups %}
+            {# 親：レベル（配下の番号を一括トグル） #}
             <label class="list-group-item d-flex justify-content-between align-items-center">
-                <span>
-                    <input class="form-check-input me-2 grp-level" type="checkbox" name="level" value="{{ lv.value }}" checked>
-                    {{ lv.label }}
+                <span class="fw-bold">
+                    <input class="form-check-input me-2 grp-level parent-level" type="checkbox"
+                           name="level" value="{{ g.series }}" data-series="{{ g.series }}" checked>
+                    {{ g.label }}
                 </span>
-                <span class="badge bg-secondary rounded-pill">{{ lv.count }}</span>
+                <span class="badge bg-secondary rounded-pill">{{ g.count }}</span>
             </label>
+            {# 子：番号（ファイル） #}
+            {% for st in g.sets %}
+            <label class="list-group-item d-flex justify-content-between align-items-center ps-5">
+                <span>
+                    <input class="form-check-input me-2 grp-level child-set" type="checkbox"
+                           name="set" value="{{ st.value }}" data-series="{{ g.series }}" checked>
+                    <span class="text-muted small">{{ st.label }}</span>
+                </span>
+                <span class="badge bg-light text-dark rounded-pill">{{ st.count }}</span>
+            </label>
+            {% endfor %}
             {% endfor %}
         </div>
     </div>
@@ -53,31 +66,6 @@
             {% endfor %}
         </div>
     </div>
-
-    {# ----- 番号（ファイル） ----- #}
-    {% if set_groups %}
-    <div class="d-flex justify-content-between align-items-center mt-2 mb-1">
-        <h2 class="h6 text-muted mb-0">🔖 番号（ファイル）</h2>
-        <button type="button" class="btn btn-sm btn-link p-0 toggle-all" data-group="set">全選択/解除</button>
-    </div>
-    <details class="card shadow-sm mb-3">
-        <summary class="px-3 py-2 text-muted small" style="cursor: pointer;">タップして番号を選ぶ（既定は全て出題）</summary>
-        <div class="list-group list-group-flush border-top">
-            {% for g in set_groups %}
-            <div class="list-group-item bg-light text-muted small fw-bold py-1">{{ g.label }}</div>
-            {% for st in g.sets %}
-            <label class="list-group-item d-flex justify-content-between align-items-center">
-                <span>
-                    <input class="form-check-input me-2 grp-set" type="checkbox" name="set" value="{{ st.value }}" checked>
-                    {{ st.label }}
-                </span>
-                <span class="badge bg-secondary rounded-pill">{{ st.count }}</span>
-            </label>
-            {% endfor %}
-            {% endfor %}
-        </div>
-    </details>
-    {% endif %}
 
     {# ----- 問題数 ----- #}
     <h2 class="h6 text-muted mt-2 mb-1">🔢 問題数</h2>
@@ -118,8 +106,30 @@
     btn.addEventListener('click', function () {
       var boxes = document.querySelectorAll('.grp-' + btn.dataset.group);
       var anyChecked = Array.prototype.some.call(boxes, function (b) { return b.checked; });
-      boxes.forEach(function (b) { b.checked = !anyChecked; });
+      boxes.forEach(function (b) { b.checked = !anyChecked; b.indeterminate = false; });
     });
+  });
+
+  // レベル（親）↔ 番号（子）の入れ子チェック同期
+  function childrenOf(series) {
+    return document.querySelectorAll('.child-set[data-series="' + series + '"]');
+  }
+  function syncParent(series) {
+    var parent = document.querySelector('.parent-level[data-series="' + series + '"]');
+    if (!parent) return;
+    var kids = childrenOf(series);
+    var checked = Array.prototype.filter.call(kids, function (k) { return k.checked; }).length;
+    parent.checked = checked > 0;                       // 1つでもONなら親もON（=そのレベルを出題対象に含める）
+    parent.indeterminate = checked > 0 && checked < kids.length;  // 一部だけONは中間表示
+  }
+  document.querySelectorAll('.parent-level').forEach(function (parent) {
+    parent.addEventListener('change', function () {
+      childrenOf(parent.dataset.series).forEach(function (k) { k.checked = parent.checked; });
+      parent.indeterminate = false;
+    });
+  });
+  document.querySelectorAll('.child-set').forEach(function (child) {
+    child.addEventListener('change', function () { syncParent(child.dataset.series); });
   });
 </script>
 {% endblock %}
