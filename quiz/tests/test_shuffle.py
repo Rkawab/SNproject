@@ -90,7 +90,7 @@ class FeedbackDisplayTests(TestCase):
         )
         # 表示順を固定（元C,A,B,D → 表示A,B,C,D）して乱数依存をなくす
         session = self.client.session
-        session[f"quiz_run_{self.qset.id}"] = {
+        session["quiz_run_custom"] = {
             "ids": [self.q.id],
             "results": [{"qid": self.q.id, "correct": False, "chosen": "A"}],
             "orders": {str(self.q.id): ["C", "A", "B", "D"]},
@@ -98,7 +98,7 @@ class FeedbackDisplayTests(TestCase):
         session.save()
 
     def test_feedback_shows_remapped_answer_and_explanation(self):
-        url = reverse("quiz:feedback", args=[self.qset.id, 1])
+        url = reverse("quiz:feedback", args=[1])
         html = self.client.get(url).content.decode()
 
         # 正解の元記号 B は表示記号 C に振り直されている
@@ -124,14 +124,14 @@ class QuestionDisplayTests(TestCase):
             choices={"A": "Alpha", "B": "Beta", "C": "Gamma", "D": "Delta"}, answer="B",
         )
         session = self.client.session
-        session[f"quiz_run_{self.qset.id}"] = {
+        session["quiz_run_custom"] = {
             "ids": [self.q.id], "results": [],
             "orders": {str(self.q.id): ["C", "A", "B", "D"]},
         }
         session.save()
 
     def test_choices_rendered_with_orig_letter_submitted(self):
-        url = reverse("quiz:question", args=[self.qset.id, 1])
+        url = reverse("quiz:question", args=[1])
         html = self.client.get(url).content.decode()
 
         # 全選択肢が表示される

@@ -15,14 +15,14 @@
     </div>
 </div>
 
-{% if genre_stats %}
-<h2 class="h6 text-muted">ジャンル別正答率（低い順）</h2>
+{% if cat_stats %}
+<h2 class="h6 text-muted">分野別正答率（低い順）</h2>
 <div class="card shadow-sm mb-3">
     <ul class="list-group list-group-flush">
-        {% for g in genre_stats %}
+        {% for g in cat_stats %}
         <li class="list-group-item">
             <div class="d-flex justify-content-between mb-1">
-                <span>{{ g.genre }}</span>
+                <span>{{ g.category }}</span>
                 <span class="fw-bold">{{ g.percent }}%<small class="text-muted">（{{ g.correct }}/{{ g.total }}）</small></span>
             </div>
             <div class="progress quiz-progress">
@@ -41,7 +41,7 @@
     <ul class="list-group list-group-flush">
         {% for q in worst %}
         <li class="list-group-item">
-            <div class="small text-muted">{{ q.question_set.title }} 第{{ q.number }}問{% if q.genre %}（{{ q.genre }}）{% endif %}</div>
+            <div class="small text-muted">{{ q.question_set.title }} 第{{ q.number }}問{% if q.category %}（{{ q.category }}）{% elif q.genre %}（{{ q.genre }}）{% endif %}</div>
             <div class="d-flex justify-content-between">
                 <span class="text-truncate me-2">{{ q.question_html|striptags|truncatechars:60 }}</span>
                 <span class="badge bg-danger">×{{ q.wrong_count }}</span>

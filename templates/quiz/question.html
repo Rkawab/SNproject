@@ -4,7 +4,8 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mt-3 mb-1">
     <span class="fw-bold">{{ n }} / {{ total }}</span>
-    {% if q.genre %}<span class="badge bg-study-light text-study">{{ q.genre }}</span>{% endif %}
+    {# ジャンルはネタバレになるため回答前は伏せる（回答後の feedback.html で表示） #}
+    {% if q.genre %}<span class="badge bg-study-light text-study">ジャンル ❓</span>{% endif %}
 </div>
 <div class="progress quiz-progress mb-3">
     <div class="progress-bar bg-study-primary" style="width: {% widthratio n total 100 %}%"></div>
@@ -30,7 +31,7 @@
 </form>
 
 <div class="mt-4">
-    <a href="{% if set_id %}{% url 'quiz:result' set_id %}{% else %}{% url 'quiz:review_result' %}{% endif %}"
+    <a href="{{ result_url }}"
        class="btn btn-link text-muted"
        onclick="return confirm('ここまでの結果を表示して中断しますか？');">中断して結果を見る</a>
 </div>

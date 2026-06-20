@@ -120,13 +120,17 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING(f"問題を抽出できません（書式確認）: {path.name}"))
                 continue
             set_stems.add(path.stem)
+            order = _leading_number(path.stem)
+            # ファイル名先頭桁をレベル（出題タイプ）に: 101→1 / 201→2 ... 1〜4以外は0
+            series = order // 100 if 1 <= order // 100 <= 4 else 0
             qset, _ = QuestionSet.objects.update_or_create(
                 source_filename=path.stem,
                 defaults={
                     "subject": subject,
                     "set_type": QuestionSet.TYPE_EXAM,
                     "title": extract_title(body) or path.stem,
-                    "order": _leading_number(path.stem),
+                    "order": order,
+                    "series": series,
                 },
             )
             numbers = []
@@ -136,6 +140,7 @@ class Command(BaseCommand):
                     question_set=qset,
                     number=item["number"],
                     defaults={
+                        "category": item.get("category", ""),
                         "genre": item["genre"],
                         "question_html": render_markdown(item["question_md"], link_map),
                         "choices": item.get("choices"),

@@ -4,7 +4,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mt-3 mb-1">
     <span class="fw-bold">{{ n }} / {{ total }}</span>
-    {% if q.genre %}<span class="badge bg-study-light text-study">{{ q.genre }}</span>{% endif %}
+    {% if q.category or q.genre %}<span class="badge bg-study-light text-study">{% if q.category %}{{ q.category }}{% if q.genre %} / {% endif %}{% endif %}{{ q.genre }}</span>{% endif %}
 </div>
 <div class="progress quiz-progress mb-3">
     <div class="progress-bar bg-study-primary" style="width: {% widthratio n total 100 %}%"></div>

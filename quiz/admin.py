@@ -5,14 +5,14 @@ from .models import QuestionSet, Question, AnswerLog
 
 @admin.register(QuestionSet)
 class QuestionSetAdmin(admin.ModelAdmin):
-    list_display = ("title", "subject", "set_type", "order", "imported_at")
-    list_filter = ("subject", "set_type")
+    list_display = ("title", "subject", "set_type", "series", "order", "imported_at")
+    list_filter = ("subject", "set_type", "series")
 
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ("question_set", "number", "genre", "answer")
-    list_filter = ("question_set",)
+    list_display = ("question_set", "number", "category", "genre", "answer")
+    list_filter = ("question_set", "category")
 
 
 @admin.register(AnswerLog)

@@ -54,7 +54,9 @@ class ParseExamTests(unittest.TestCase):
         questions = parse_exam(text)
 
         self.assertEqual([1, 2], [question["number"] for question in questions])
-        self.assertEqual("ストレージ", questions[0]["genre"])
+        # 区切り（｜）が無い見出しは括弧内全体が分野（category）、細目は空
+        self.assertEqual("ストレージ", questions[0]["category"])
+        self.assertEqual("", questions[0]["genre"])
         self.assertEqual(
             {"A": "Amazon S3", "B": "Amazon EBS", "C": "Amazon EFS", "D": "Amazon RDS"},
             questions[0]["choices"],
@@ -62,6 +64,39 @@ class ParseExamTests(unittest.TestCase):
         self.assertEqual("A", questions[0]["answer"])
         self.assertIn("S3はオブジェクトストレージ", questions[0]["explanation_md"])
         self.assertEqual("B", questions[1]["answer"])
+
+    def test_splits_category_and_genre_from_heading(self):
+        """`## 第N問（分野 ｜ 細目）` は縦棒で分野と細目に分割される。
+        分野名がスラッシュを含んでも（Networking / CDN / LB）正しく取れること。"""
+        text = """\
+## 第1問（Networking / CDN / LB ｜ DNS）
+名前解決を行うサービスはどれか。
+
+- A. Amazon Route 53
+- B. Amazon CloudFront
+
+> [!success]- 答え：**A**
+> Route 53はDNSサービス。
+"""
+        questions = parse_exam(text)
+        self.assertEqual("Networking / CDN / LB", questions[0]["category"])
+        self.assertEqual("DNS", questions[0]["genre"])
+
+    def test_category_only_heading_has_empty_genre(self):
+        """細目なし（括弧内が分野のみ）の見出しは category=全体・genre 空。"""
+        text = """\
+## 第1問（Management / Monitoring）
+メトリクスを監視するサービスはどれか。
+
+- A. Amazon CloudWatch
+- B. AWS CloudTrail
+
+> [!success]- 答え：**A**
+> CloudWatchはメトリクスを監視する。
+"""
+        questions = parse_exam(text)
+        self.assertEqual("Management / Monitoring", questions[0]["category"])
+        self.assertEqual("", questions[0]["genre"])
 
     def test_parses_multiple_answer_letters(self):
         text = """\

@@ -3,7 +3,8 @@
 書式の前提（.claude/OVERVIEW.md「md書式の前提」参照）:
 
 選択式問題（ファイル名に「【問題】」を含むmd。分類は import_content 側）:
-    ## 第N問（ジャンル）
+    ## 第N問（分野）            ← 括弧内全体が分野（13カテゴリのいずれか）
+    ## 第N問（分野 ｜ 細目）     ← 任意で「｜」区切りの細目を付けられる
     問題文
     - A. 選択肢
     - B. 選択肢
@@ -36,6 +37,22 @@ def _collect_callout_body(lines, i):
     return body, i
 
 
+def _split_heading(label):
+    """見出し括弧内を (分野category, 細目genre) に分割する。
+
+    区切りは縦棒 `｜`（全角）または `|`（半角）。前後の空白は無視する。
+    分野名にスラッシュを含む（例: `Networking / CDN / LB`）ため、区切りに
+    スラッシュは使わない。例:
+      `Networking / CDN / LB ｜ DNS` → ("Networking / CDN / LB", "DNS")
+    区切りが無い見出しは括弧内全体を分野（細目なし）として扱う:
+      `Storage` → ("Storage", "")
+    """
+    parts = re.split(r"\s*[｜|]\s*", label, maxsplit=1)
+    if len(parts) == 2:
+        return parts[0].strip(), parts[1].strip()
+    return label.strip(), ""
+
+
 def _normalize_answer_letters(letters):
     ordered = []
     for letter in letters:
@@ -57,7 +74,7 @@ def _extract_answer(text):
 def parse_exam(text):
     """4択問題mdをパースし、問題のリストを返す。
 
-    戻り値: [{number, genre, question_md, choices, answer, explanation_md}, ...]
+    戻り値: [{number, category, genre, question_md, choices, answer, explanation_md}, ...]
     """
     lines = text.split("\n")
     questions = []
@@ -75,9 +92,11 @@ def parse_exam(text):
         sec = EXAM_SECTION_RE.match(line)
         if sec:
             _finish(current)
+            category, genre = _split_heading(sec.group(2).strip())
             current = {
                 "number": int(sec.group(1)),
-                "genre": sec.group(2).strip(),
+                "category": category,
+                "genre": genre,
                 "q_lines": [],
                 "choices": {},
                 "answer": "",

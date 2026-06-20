@@ -17,6 +17,8 @@ class QuestionSet(models.Model):
     # 元mdファイル名（拡張子なし）
     source_filename = models.CharField(max_length=300, unique=True)
     order = models.IntegerField(default=999)
+    # レベル（出題タイプ）。ファイル名先頭桁から自動設定: 1=用途確認/2=比較/3=シナリオ/4=模試。判定不能は0
+    series = models.IntegerField(default=0)
     imported_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -35,6 +37,9 @@ class Question(models.Model):
 
     question_set = models.ForeignKey(QuestionSet, on_delete=models.CASCADE, related_name="questions")
     number = models.IntegerField()
+    # 分野（統制リスト＝ノート16分野フォルダ表示名）。`## 第N問（分野 / 細目）` の分野部分。未指定は空
+    category = models.CharField(max_length=200, blank=True)
+    # 細目（旧ジャンル）。`## 第N問（分野 / 細目）` の細目部分、または1語見出しの全体
     genre = models.CharField(max_length=200, blank=True)
     question_html = models.TextField()
     # {"A": "...", "B": "..."}

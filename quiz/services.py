@@ -14,6 +14,38 @@ DISPLAY_LETTERS = "ABCDEFGHIJ"
 # 正答・回答として認識する選択肢記号（A〜E＝最大5択。parsing.CHOICE_LETTERS と揃える）
 CHOICE_LETTERS = "ABCDE"
 
+# レベル（出題タイプ）のラベル。QuestionSet.series（ファイル名先頭桁）と対応する。
+SERIES_LABELS = {
+    1: "サービス用途確認",
+    2: "類似サービス比較",
+    3: "シナリオ",
+    4: "SAA模擬試験レベル",
+}
+
+
+def series_label(series):
+    """series（1〜4 / 0）を表示ラベルにする。未知の値は「その他」。"""
+    return SERIES_LABELS.get(series, "その他")
+
+
+# 分野（category）の統制リスト兼 表示順。カスタム出題のチェックボックスはこの順に並べる。
+# md見出しの分野はこのいずれかに揃える（`## 第N問（Storage ｜ 細目）` 等）。
+CATEGORY_ORDER = [
+    "Compute",
+    "Storage",
+    "Database",
+    "Networking / CDN / LB",
+    "Security / IAM",
+    "Management / Monitoring",
+    "Application Integration",
+    "Serverless",
+    "Containers",
+    "Analytics",
+    "Migration / Transfer",
+    "Cost Optimization",
+    "Machine Learning",
+]
+
 # 答え記号: <strong>X</strong> / <strong>A, C</strong>
 _STRONG_LETTER_RE = re.compile(r"(<strong>)([A-Z](?:\s*[,、・/]\s*[A-Z])*)(</strong>)")
 # 理由マーカー: 行頭 '- X：' またはHTMLリスト化後の '<li>X：'。

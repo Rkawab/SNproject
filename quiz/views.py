@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from notes.views import get_current_subject
-from .models import QuestionSet, Question, AnswerLog
+from .models import Question, AnswerLog
 from .services import (
     answer_letters,
     format_answer,
@@ -20,23 +20,30 @@ from .services import (
     shuffle_order,
     build_display,
     remap_letters,
+    series_label,
+    CATEGORY_ORDER,
 )
 
 
 # ---- セッション内の演習状態（run）管理 ----------------------------------
 # run = {"ids": [問題ID...], "results": [{"qid", "correct", "chosen"}...]}
-# キーは問題セットごと（復習モードは "review"）に分ける
+# モード（"custom"=カスタム出題 / "review"=×復習）ごとに run を分ける。
+# 旧「セット単位の出題」は廃止し、常に絞り込んだID配列を run に流す方式に統一した。
 
-def _run_key(set_id):
-    return f"quiz_run_{set_id or 'review'}"
-
-
-def _get_run(request, set_id):
-    return request.session.get(_run_key(set_id))
+# 分野チェックボックスで「未分類（category 空）」を表す値
+NONE_CATEGORY = "__none__"
 
 
-def _save_run(request, set_id, run):
-    request.session[_run_key(set_id)] = run
+def _run_key(mode):
+    return f"quiz_run_{mode}"
+
+
+def _get_run(request, mode):
+    return request.session.get(_run_key(mode))
+
+
+def _save_run(request, mode, run):
+    request.session[_run_key(mode)] = run
     request.session.modified = True
 
 
@@ -54,106 +61,146 @@ def _question_order(run, q):
     return saved
 
 
-def _url(set_id, name, n=None):
-    """セット演習と復習モードで対応するURLを返す"""
-    if set_id:
-        args = [set_id] if n is None else [set_id, n]
-        return reverse(f"quiz:{name}", args=args)
+def _url(mode, name, n=None):
+    """カスタム出題（mode="custom"）と復習モード（mode="review"）で対応するURLを返す"""
+    prefix = "review_" if mode == "review" else ""
     args = [] if n is None else [n]
-    return reverse(f"quiz:review_{name}", args=args)
+    return reverse(f"quiz:{prefix}{name}", args=args)
 
 
 # ---- 画面 ----------------------------------------------------------------
 
 @login_required
 def top(request):
+    """演習トップ＝カスタム出題ビルダー。レベル・分野ごとの件数を出して選ばせる。"""
     subject, subjects = get_current_subject(request)
-    exam_sets, review_count = [], 0
+    levels, categories, review_count, total = [], [], 0, 0
     if subject:
-        # annotate(Count) を付けると Meta.ordering が SQL に反映されないため、
-        # 番号順（先頭番号）を保証するよう明示的に order_by を指定する。
-        exam_sets = QuestionSet.objects.filter(
-            subject=subject,
-            set_type=QuestionSet.TYPE_EXAM,
-        ).annotate(n_questions=Count("questions")).order_by("order", "source_filename")
+        base = Question.objects.filter(question_set__subject=subject)
+
+        # レベル（出題タイプ）別の件数
+        series_counts = {
+            row["question_set__series"]: row["n"]
+            for row in base.values("question_set__series").annotate(n=Count("id"))
+        }
+        for s in sorted(series_counts):
+            if series_counts[s]:
+                levels.append({"value": s, "label": series_label(s), "count": series_counts[s]})
+
+        # 分野別の件数（CATEGORY_ORDER の順に並べ、未知の分野→その後、未分類→末尾）
+        order_index = {name: i for i, name in enumerate(CATEGORY_ORDER)}
+        cats = []
+        for row in base.values("category").annotate(n=Count("id")):
+            name = row["category"] or ""
+            cats.append({
+                "value": name or NONE_CATEGORY,
+                "label": name or "未分類",
+                "count": row["n"],
+                "order": order_index.get(name, 9998) if name else 9999,
+            })
+        categories = sorted(cats, key=lambda c: (c["order"], c["label"]))
+
+        total = sum(item["count"] for item in levels)
         review_count = len(wrong_question_ids(subject))
+
     return render(request, "quiz/top.html", {
         "subject": subject, "subjects": subjects,
-        "exam_sets": exam_sets,
-        "review_count": review_count,
+        "levels": levels, "categories": categories,
+        "total_count": total, "review_count": review_count,
+        "count_choices": [10, 20, 30],
     })
 
 
 @login_required
-def start(request, set_id):
+def start(request, mode="custom"):
     # 復習モード: 最新回答が×の問題を横断出題（オプションなしで即開始）
-    if set_id is None:
+    if mode == "review":
         subject, _ = get_current_subject(request)
         ids = wrong_question_ids(subject) if subject else []
         if not ids:
             messages.info(request, "復習対象（最新回答が×の問題）はありません。")
             return redirect("quiz:top")
-        _save_run(request, None, {"ids": ids, "results": []})
-        return redirect(_url(None, "question", 1))
+        _save_run(request, "review", {"ids": ids, "results": []})
+        return redirect(_url("review", "question", 1))
 
-    qset = get_object_or_404(QuestionSet, pk=set_id)
-    genres = list(qset.questions.order_by("number").values_list("genre", flat=True).distinct())
+    # カスタム出題: トップのビルダーからのPOSTのみ受け付ける
+    if request.method != "POST":
+        return redirect("quiz:top")
+    subject, _ = get_current_subject(request)
+    if not subject:
+        return redirect("quiz:top")
 
-    if request.method == "POST":
-        questions = qset.questions.order_by("number")
-        genre = request.POST.get("genre", "")
-        if genre:
-            questions = questions.filter(genre=genre)
-        ids = list(questions.values_list("id", flat=True))
-        if request.POST.get("order") == "random":
-            random.shuffle(ids)
-        if not ids:
-            messages.warning(request, "出題対象の問題がありません。")
-            return redirect("quiz:start", set_id=set_id)
-        _save_run(request, set_id, {"ids": ids, "results": []})
-        return redirect(_url(set_id, "question", 1))
+    qs = Question.objects.filter(question_set__subject=subject)
 
-    return render(request, "quiz/start.html", {"qset": qset, "genres": genres})
+    levels = [int(x) for x in request.POST.getlist("level") if x.isdigit()]
+    if levels:  # 未選択は「すべてのレベル」
+        qs = qs.filter(question_set__series__in=levels)
+
+    cats = request.POST.getlist("category")
+    if cats:  # 未選択は「すべての分野」
+        cond = Q()
+        real = [c for c in cats if c != NONE_CATEGORY]
+        if real:
+            cond |= Q(category__in=real)
+        if NONE_CATEGORY in cats:
+            cond |= Q(category="")
+        qs = qs.filter(cond)
+
+    ids = list(qs.order_by("question_set__order", "number").values_list("id", flat=True))
+    if request.POST.get("order", "random") == "random":
+        random.shuffle(ids)
+
+    count = request.POST.get("count", "20")
+    if count != "all" and count.isdigit():
+        ids = ids[: int(count)]
+
+    if not ids:
+        messages.warning(request, "条件に合う問題がありません。レベルや分野の選択を見直してください。")
+        return redirect("quiz:top")
+
+    _save_run(request, "custom", {"ids": ids, "results": []})
+    return redirect(_url("custom", "question", 1))
 
 
 @login_required
-def question(request, set_id, n):
-    run = _get_run(request, set_id)
+def question(request, n, mode="custom"):
+    run = _get_run(request, mode)
     if not run:
-        return redirect(_url(set_id, "start") if set_id else "quiz:top")
+        return redirect("quiz:top")
 
     total = len(run["ids"])
     answered = len(run["results"])
     if answered >= total:
-        return redirect(_url(set_id, "result"))
+        return redirect(_url(mode, "result"))
     if n != answered + 1:
         # 進行中の問題以外へのアクセスは現在位置へ戻す
-        return redirect(_url(set_id, "question", answered + 1))
+        return redirect(_url(mode, "question", answered + 1))
 
     q = get_object_or_404(Question, pk=run["ids"][n - 1])
     order = _question_order(run, q)
-    _save_run(request, set_id, run)  # この問題の表示順を確定・保存
+    _save_run(request, mode, run)  # この問題の表示順を確定・保存
     choices, _ = build_display(q.choices, order)
     return render(request, "quiz/question.html", {
-        "q": q, "n": n, "total": total, "set_id": set_id,
-        "answer_url": _url(set_id, "answer", n),
+        "q": q, "n": n, "total": total, "mode": mode,
+        "answer_url": _url(mode, "answer", n),
+        "result_url": _url(mode, "result"),
         "choices": choices,
     })
 
 
 @require_POST
 @login_required
-def answer(request, set_id, n):
-    run = _get_run(request, set_id)
+def answer(request, n, mode="custom"):
+    run = _get_run(request, mode)
     if not run:
-        return redirect(_url(set_id, "question", n))
+        return redirect(_url(mode, "question", n))
     answered = len(run["results"])
     if n <= answered:
         # 既に回答済み（二重送信など）→ その問題の判定画面へ戻す。
         # ここで question へ飛ばすと次問題へ遷移してしまうため feedback を返す。
-        return redirect(_url(set_id, "feedback", n))
+        return redirect(_url(mode, "feedback", n))
     if n != answered + 1:
-        return redirect(_url(set_id, "question", answered + 1))
+        return redirect(_url(mode, "question", answered + 1))
 
     q = get_object_or_404(Question, pk=run["ids"][n - 1])
 
@@ -161,33 +208,33 @@ def answer(request, set_id, n):
     valid_choices = set((q.choices or {}).keys())
     if not chosen or not answer_letters(chosen).issubset(valid_choices):
         messages.warning(request, "選択肢を選んでください。")
-        return redirect(_url(set_id, "question", n))
+        return redirect(_url(mode, "question", n))
     correct = is_correct_answer(chosen, q.answer)
 
     AnswerLog.objects.create(question=q, is_correct=correct, chosen=chosen)
     run["results"].append({"qid": q.id, "correct": correct, "chosen": chosen})
-    _save_run(request, set_id, run)
+    _save_run(request, mode, run)
 
-    return redirect(_url(set_id, "feedback", n))
+    return redirect(_url(mode, "feedback", n))
 
 
 @login_required
-def feedback(request, set_id, n):
+def feedback(request, n, mode="custom"):
     """4択問題の回答直後の判定・解説画面"""
-    run = _get_run(request, set_id)
+    run = _get_run(request, mode)
     if not run or n > len(run["results"]):
-        return redirect(_url(set_id, "question", n))
+        return redirect(_url(mode, "question", n))
 
     res = run["results"][n - 1]
     q = get_object_or_404(Question, pk=res["qid"])
     total = len(run["ids"])
     order = _question_order(run, q)
-    _save_run(request, set_id, run)
+    _save_run(request, mode, run)
     choices, orig_to_disp = build_display(q.choices, order)
     answer_orig = sorted(answer_letters(q.answer))
     chosen_orig = sorted(answer_letters(res["chosen"]))
     return render(request, "quiz/feedback.html", {
-        "q": q, "n": n, "total": total, "set_id": set_id,
+        "q": q, "n": n, "total": total, "mode": mode,
         "choices": choices,
         "chosen": res["chosen"],                       # 元記号セット（ログ表示用）
         "answer_orig": answer_orig,                    # 元記号（ハイライト判定用）
@@ -195,18 +242,17 @@ def feedback(request, set_id, n):
         "answer_disp": format_answer(q.answer, orig_to_disp),  # 表示記号
         "explanation_html": remap_letters(q.explanation_html, orig_to_disp),
         "correct": res["correct"],
-        "next_url": _url(set_id, "question", n + 1) if n < total else _url(set_id, "result"),
+        "next_url": _url(mode, "question", n + 1) if n < total else _url(mode, "result"),
         "is_last": n >= total,
     })
 
 
 @login_required
-def result(request, set_id):
-    run = _get_run(request, set_id)
+def result(request, mode="custom"):
+    run = _get_run(request, mode)
     if not run or not run["results"]:
         return redirect("quiz:top")
 
-    qset = get_object_or_404(QuestionSet, pk=set_id) if set_id else None
     results = run["results"]
     questions = Question.objects.in_bulk([r["qid"] for r in results])
 
@@ -214,17 +260,18 @@ def result(request, set_id):
     total = len(results)
     ratio = n_correct / total if total else 0
 
-    # ジャンル別内訳
+    # 分野別内訳（category 優先、無ければ細目→未分類）
     orders = run.get("orders", {})
-    genre_stats = {}
+    cat_stats = {}
     wrong = []
     for r in results:
         q = questions.get(r["qid"])
         if not q:
             continue
-        g = genre_stats.setdefault(q.genre or "（未分類）", {"total": 0, "correct": 0})
-        g["total"] += 1
-        g["correct"] += int(r["correct"])
+        key = q.category or q.genre or "（未分類）"
+        c = cat_stats.setdefault(key, {"total": 0, "correct": 0})
+        c["total"] += 1
+        c["correct"] += int(r["correct"])
         if not r["correct"]:
             # 演習中に見たシャッフル順と同じ記号で復習表示する
             order = orders.get(str(q.id)) or list((q.choices or {}).keys())
@@ -236,16 +283,16 @@ def result(request, set_id):
                 "explanation_html": remap_letters(q.explanation_html, orig_to_disp),
             })
 
-    subject = qset.subject if qset else get_current_subject(request)[0]
+    subject = get_current_subject(request)[0]
     pass_ratio = subject.pass_ratio if subject else 0.8
     return render(request, "quiz/result.html", {
-        "qset": qset, "set_id": set_id,
+        "mode": mode,
         "n_correct": n_correct, "total": total,
         "percent": round(ratio * 100),
-        "show_pass_line": qset is not None,
+        "show_pass_line": mode != "review",
         "passed": ratio >= pass_ratio,
         "pass_percent": round(pass_ratio * 100),
-        "genre_stats": genre_stats, "wrong": wrong,
+        "cat_stats": cat_stats, "wrong": wrong,
     })
 
 
@@ -257,20 +304,20 @@ def stats(request):
     total = logs.count()
     n_correct = logs.filter(is_correct=True).count()
 
-    genre_rows = (
-        logs.values("question__genre")
+    cat_rows = (
+        logs.values("question__category")
         .annotate(total=Count("id"), correct=Count("id", filter=Q(is_correct=True)))
-        .order_by("question__genre")
+        .order_by("question__category")
     )
-    genre_stats = sorted(
+    cat_stats = sorted(
         [
             {
-                "genre": row["question__genre"] or "（未分類）",
+                "category": row["question__category"] or "未分類",
                 "total": row["total"],
                 "correct": row["correct"],
                 "percent": round(row["correct"] / row["total"] * 100) if row["total"] else 0,
             }
-            for row in genre_rows
+            for row in cat_rows
         ],
         key=lambda x: x["percent"],
     )
@@ -298,5 +345,5 @@ def stats(request):
         "subject": subject, "subjects": subjects,
         "total": total, "n_correct": n_correct,
         "percent": round(n_correct / total * 100) if total else 0,
-        "genre_stats": genre_stats, "daily": daily, "worst": worst,
+        "cat_stats": cat_stats, "daily": daily, "worst": worst,
     })
