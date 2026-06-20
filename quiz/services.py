@@ -11,6 +11,8 @@ from .models import Question, AnswerLog
 # 並びを振り直す。解説HTML内の記号参照も表示記号へ補正して見せる。
 
 DISPLAY_LETTERS = "ABCDEFGHIJ"
+# 正答・回答として認識する選択肢記号（A〜E＝最大5択。parsing.CHOICE_LETTERS と揃える）
+CHOICE_LETTERS = "ABCDE"
 
 # 答え記号: <strong>X</strong> / <strong>A, C</strong>
 _STRONG_LETTER_RE = re.compile(r"(<strong>)([A-Z](?:\s*[,、・/]\s*[A-Z])*)(</strong>)")
@@ -48,8 +50,8 @@ def answer_letters(value):
     if not value:
         return set()
     if isinstance(value, str):
-        return {letter for letter in _SINGLE_LETTER_RE.findall(value.upper()) if letter in "ABCD"}
-    return {str(letter).upper() for letter in value if str(letter).upper() in "ABCD"}
+        return {letter for letter in _SINGLE_LETTER_RE.findall(value.upper()) if letter in CHOICE_LETTERS}
+    return {str(letter).upper() for letter in value if str(letter).upper() in CHOICE_LETTERS}
 
 
 def normalize_answer(value):

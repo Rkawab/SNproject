@@ -82,6 +82,53 @@ class ParseExamTests(unittest.TestCase):
 
         self.assertEqual("A,B", questions[0]["answer"])
 
+    def test_parses_five_choices_with_e(self):
+        """SAA公式サンプル形式の5択（A〜E）を取り込めること。"""
+        text = """\
+## 第1問（ネットワーク）
+プライベートサブネットのEC2がパッチを取得する構成を2つ選べ。
+
+- A. 各AZのパブリックサブネットにNAT Gatewayを構成する。
+- B. NAT Gatewayへのルートをプライベートサブネットに関連付ける。
+- C. 各EC2にElastic IPを割り当てる。
+- D. Internet Gatewayをプライベートサブネットに関連付ける。
+- E. プライベートサブネットにNATインスタンスを単一AZで構成する。
+
+> [!success]- 答え：**A, B**
+> - A：正解。
+> - B：正解。
+> - E：単一AZのNATインスタンスは可用性に欠ける。
+"""
+
+        questions = parse_exam(text)
+
+        # E を含む全5択が選択肢として抽出される
+        self.assertEqual(
+            {"A", "B", "C", "D", "E"},
+            set(questions[0]["choices"].keys()),
+        )
+        self.assertEqual("A,B", questions[0]["answer"])
+
+    def test_parses_e_as_correct_answer(self):
+        """正答に E が含まれる場合も認識すること。"""
+        text = """\
+## 第1問（テスト）
+正しいものを選べ。
+
+- A. 誤り
+- B. 誤り
+- C. 誤り
+- D. 誤り
+- E. 正しい
+
+> [!success]- 答え：**E**
+> - E：正解。
+"""
+
+        questions = parse_exam(text)
+
+        self.assertEqual("E", questions[0]["answer"])
+
 
 if __name__ == "__main__":
     unittest.main()

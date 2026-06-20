@@ -1,12 +1,13 @@
-"""`【問題】` 付き4択問題mdのパーサ
+"""`【問題】` 付き選択式問題mdのパーサ（4〜5択 / A〜E）
 
 書式の前提（.claude/OVERVIEW.md「md書式の前提」参照）:
 
-4択問題（ファイル名に「【問題】」を含むmd。分類は import_content 側）:
+選択式問題（ファイル名に「【問題】」を含むmd。分類は import_content 側）:
     ## 第N問（ジャンル）
     問題文
     - A. 選択肢
     - B. 選択肢
+    （SAA公式サンプルに合わせ A〜E の最大5択。複数選択問題は5択を推奨）
     > [!success]- 答え：**B**（補足）
     > [!success]- 答え：**A, C**（複数正答）
     > 解説...
@@ -14,13 +15,16 @@
 
 import re
 
+# 認識する選択肢記号の上限（SAA本番は最大5択のため A〜E に固定）
+CHOICE_LETTERS = "ABCDE"
+
 EXAM_SECTION_RE = re.compile(r"^##\s*第(\d+)問[（(](.*?)[）)]")
-CHOICE_RE = re.compile(r"^-\s*([A-D])[.．]\s*(.*)$")
+CHOICE_RE = re.compile(r"^-\s*([A-E])[.．]\s*(.*)$")
 ANSWER_HEAD_RE = re.compile(r"^>\s*\[!success\]-?\s*(.*)$", re.IGNORECASE)
 ANSWER_TEXT_RE = re.compile(r"答え\s*[：:]\s*(.*)$")
 ANSWER_BOLD_RE = re.compile(r"\*\*([^*]+)\*\*")
-ANSWER_GROUP_RE = re.compile(r"^\s*[A-D](?:\s*[,、・/]\s*[A-D])*\s*$", re.IGNORECASE)
-ANSWER_LETTER_RE = re.compile(r"[A-D]", re.IGNORECASE)
+ANSWER_GROUP_RE = re.compile(r"^\s*[A-E](?:\s*[,、・/]\s*[A-E])*\s*$", re.IGNORECASE)
+ANSWER_LETTER_RE = re.compile(r"[A-E]", re.IGNORECASE)
 
 
 def _collect_callout_body(lines, i):
@@ -36,7 +40,7 @@ def _normalize_answer_letters(letters):
     ordered = []
     for letter in letters:
         letter = letter.upper()
-        if letter in "ABCD" and letter not in ordered:
+        if letter in CHOICE_LETTERS and letter not in ordered:
             ordered.append(letter)
     return ",".join(sorted(ordered))
 
