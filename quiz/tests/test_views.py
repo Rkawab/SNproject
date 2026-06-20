@@ -102,6 +102,14 @@ class QuizCustomStartTests(TestCase):
             question_html="<p>q</p>", choices={"A": "a", "B": "b"}, answer="A",
         )
 
+    def test_top_renders_question_set_section(self):
+        resp = self.client.get(reverse("quiz:top"))
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode()
+        self.assertIn("番号（ファイル）", html)
+        self.assertIn('name="set" value="%d"' % self.set1.id, html)
+        self.assertIn('name="set" value="%d"' % self.set3.id, html)
+
     def test_filters_by_level_and_category(self):
         resp = self.client.post(reverse("quiz:start"), {
             "level": ["1"], "category": ["S3"], "count": "all", "order": "normal",
@@ -109,6 +117,24 @@ class QuizCustomStartTests(TestCase):
         self.assertRedirects(resp, reverse("quiz:question", args=[1]), fetch_redirect_response=False)
         run = self.client.session["quiz_run_custom"]
         self.assertEqual(run["ids"], [self.q_s3.id])
+
+    def test_filters_by_question_set(self):
+        # 番号（ファイル）で絞り込む：set3 のみ選ぶと set3 の問題だけになる
+        resp = self.client.post(reverse("quiz:start"), {
+            "set": [str(self.set3.id)], "count": "all", "order": "normal",
+        })
+        self.assertRedirects(resp, reverse("quiz:question", args=[1]), fetch_redirect_response=False)
+        run = self.client.session["quiz_run_custom"]
+        self.assertEqual(run["ids"], [self.q_scn.id])
+
+    def test_set_and_category_intersect(self):
+        # 番号と分野は AND：set1 ∩ ネットワーク = q_net のみ
+        self.client.post(reverse("quiz:start"), {
+            "set": [str(self.set1.id)], "category": ["ネットワーク"],
+            "count": "all", "order": "normal",
+        })
+        run = self.client.session["quiz_run_custom"]
+        self.assertEqual(run["ids"], [self.q_net.id])
 
     def test_limits_question_count(self):
         self.client.post(reverse("quiz:start"), {"count": "1", "order": "normal"})

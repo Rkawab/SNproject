@@ -54,6 +54,31 @@
         </div>
     </div>
 
+    {# ----- 番号（ファイル） ----- #}
+    {% if set_groups %}
+    <div class="d-flex justify-content-between align-items-center mt-2 mb-1">
+        <h2 class="h6 text-muted mb-0">🔖 番号（ファイル）</h2>
+        <button type="button" class="btn btn-sm btn-link p-0 toggle-all" data-group="set">全選択/解除</button>
+    </div>
+    <details class="card shadow-sm mb-3">
+        <summary class="px-3 py-2 text-muted small" style="cursor: pointer;">タップして番号を選ぶ（既定は全て出題）</summary>
+        <div class="list-group list-group-flush border-top">
+            {% for g in set_groups %}
+            <div class="list-group-item bg-light text-muted small fw-bold py-1">{{ g.label }}</div>
+            {% for st in g.sets %}
+            <label class="list-group-item d-flex justify-content-between align-items-center">
+                <span>
+                    <input class="form-check-input me-2 grp-set" type="checkbox" name="set" value="{{ st.value }}" checked>
+                    {{ st.label }}
+                </span>
+                <span class="badge bg-secondary rounded-pill">{{ st.count }}</span>
+            </label>
+            {% endfor %}
+            {% endfor %}
+        </div>
+    </details>
+    {% endif %}
+
     {# ----- 問題数 ----- #}
     <h2 class="h6 text-muted mt-2 mb-1">🔢 問題数</h2>
     <div class="btn-group w-100 mb-3" role="group">

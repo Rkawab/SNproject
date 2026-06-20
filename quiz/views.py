@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from notes.views import get_current_subject
-from .models import Question, AnswerLog
+from .models import Question, QuestionSet, AnswerLog
 from .services import (
     answer_letters,
     format_answer,
@@ -74,7 +74,7 @@ def _url(mode, name, n=None):
 def top(request):
     """演習トップ＝カスタム出題ビルダー。レベル・分野ごとの件数を出して選ばせる。"""
     subject, subjects = get_current_subject(request)
-    levels, categories, review_count, total = [], [], 0, 0
+    levels, categories, set_groups, review_count, total = [], [], [], 0, 0
     if subject:
         base = Question.objects.filter(question_set__subject=subject)
 
@@ -100,12 +100,27 @@ def top(request):
             })
         categories = sorted(cats, key=lambda c: (c["order"], c["label"]))
 
+        # 問題セット（ファイル）別の件数。レベル（series）ごとにまとめて選ばせる。
+        # 最初に作った番号を外して新しい番号だけ解く、といった使い方を想定。
+        set_group_map = {}
+        for s in (
+            QuestionSet.objects.filter(subject=subject)
+            .annotate(n=Count("questions"))
+            .filter(n__gt=0)
+            .order_by("order", "source_filename")
+        ):
+            g = set_group_map.setdefault(
+                s.series, {"series": s.series, "label": series_label(s.series), "sets": []}
+            )
+            g["sets"].append({"value": s.id, "label": s.source_filename, "count": s.n})
+        set_groups = [set_group_map[k] for k in sorted(set_group_map)]
+
         total = sum(item["count"] for item in levels)
         review_count = len(wrong_question_ids(subject))
 
     return render(request, "quiz/top.html", {
         "subject": subject, "subjects": subjects,
-        "levels": levels, "categories": categories,
+        "levels": levels, "categories": categories, "set_groups": set_groups,
         "total_count": total, "review_count": review_count,
         "count_choices": [10, 20, 30],
     })
@@ -145,6 +160,10 @@ def start(request, mode="custom"):
         if NONE_CATEGORY in cats:
             cond |= Q(category="")
         qs = qs.filter(cond)
+
+    set_ids = [int(x) for x in request.POST.getlist("set") if x.isdigit()]
+    if set_ids:  # 未選択は「すべての番号（ファイル）」
+        qs = qs.filter(question_set_id__in=set_ids)
 
     ids = list(qs.order_by("question_set__order", "number").values_list("id", flat=True))
     if request.POST.get("order", "random") == "random":
