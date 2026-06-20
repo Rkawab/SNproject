@@ -23,6 +23,16 @@
     border-color: var(--study-primary);
     color: var(--study-primary);
 }
+/* btn-check（ラジオ/チェック）の選択中は塗りつぶし＋白文字で明示する。
+   問題数・出題順などのトグルでどちらを選んだか一目で分かるようにする。 */
+.btn-check:checked + .btn-outline-study {
+    background-color: var(--study-primary);
+    border-color: var(--study-primary);
+    color: #fff;
+}
+.btn-check:focus-visible + .btn-outline-study {
+    box-shadow: 0 0 0 .25rem rgba(111, 66, 193, .35);
+}
 
 /* hover はマウス等のホバー可能な端末だけに適用する。
    タッチ端末（iPhone等）では mouseout が無く :hover が貼り付き、
