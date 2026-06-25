@@ -20,11 +20,12 @@ SERIES_LABELS = {
     2: "類似サービス比較",
     3: "シナリオ",
     4: "SAA模擬試験レベル",
+    5: "外部サイト模擬試験",
 }
 
 
 def series_label(series):
-    """series（1〜4 / 0）を表示ラベルにする。未知の値は「その他」。"""
+    """series（1〜5 / 0）を表示ラベルにする。未知の値は「その他」。"""
     return SERIES_LABELS.get(series, "その他")
 
 

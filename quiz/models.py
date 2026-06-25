@@ -17,7 +17,7 @@ class QuestionSet(models.Model):
     # 元mdファイル名（拡張子なし）
     source_filename = models.CharField(max_length=300, unique=True)
     order = models.IntegerField(default=999)
-    # レベル（出題タイプ）。ファイル名先頭桁から自動設定: 1=用途確認/2=比較/3=シナリオ/4=模試。判定不能は0
+    # レベル（出題タイプ）。ファイル名先頭桁から自動設定: 1=用途確認/2=比較/3=シナリオ/4=模試/5=外部サイト模擬試験。判定不能は0
     series = models.IntegerField(default=0)
     imported_at = models.DateTimeField(auto_now=True)
 

@@ -121,8 +121,8 @@ class Command(BaseCommand):
                 continue
             set_stems.add(path.stem)
             order = _leading_number(path.stem)
-            # ファイル名先頭桁をレベル（出題タイプ）に: 101→1 / 201→2 ... 1〜4以外は0
-            series = order // 100 if 1 <= order // 100 <= 4 else 0
+            # ファイル名先頭桁をレベル（出題タイプ）に: 101→1 / 201→2 ... 501→5。1〜5以外は0
+            series = order // 100 if 1 <= order // 100 <= 5 else 0
             qset, _ = QuestionSet.objects.update_or_create(
                 source_filename=path.stem,
                 defaults={
