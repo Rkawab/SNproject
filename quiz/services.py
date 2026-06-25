@@ -1,7 +1,7 @@
 import random
 import re
 
-from django.db.models import OuterRef, Subquery
+from django.db.models import Count, OuterRef, Q, Subquery
 
 from .models import Question, AnswerLog
 
@@ -136,4 +136,25 @@ def wrong_question_ids(subject):
         .filter(last_correct=False)
         .order_by("question_set__order", "number")
         .values_list("id", flat=True)
+    )
+
+
+def question_answer_stats(subject):
+    """各問題の 正解数 / 不正解数 / 直近の○× を注釈した Question クエリセット（回答ありのみ）。
+
+    専用の集計テーブルは持たず、AnswerLog（全履歴）を集計して算出する。
+    成績ページの「問題ごとの成績」表示に使う。
+    """
+    latest = AnswerLog.objects.filter(question=OuterRef("pk")).order_by("-answered_at")
+    return (
+        Question.objects.filter(question_set__subject=subject)
+        .select_related("question_set")
+        .annotate(
+            correct_count=Count("answer_logs", filter=Q(answer_logs__is_correct=True)),
+            wrong_count=Count("answer_logs", filter=Q(answer_logs__is_correct=False)),
+            answered_count=Count("answer_logs"),
+            last_correct=Subquery(latest.values("is_correct")[:1]),
+            last_answered_at=Subquery(latest.values("answered_at")[:1]),
+        )
+        .filter(answered_count__gt=0)
     )

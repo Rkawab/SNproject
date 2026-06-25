@@ -17,6 +17,7 @@ from .services import (
     is_correct_answer,
     normalize_answer,
     wrong_question_ids,
+    question_answer_stats,
     shuffle_order,
     build_display,
     remap_letters,
@@ -159,6 +160,17 @@ def start(request, mode="custom"):
     set_ids = [int(x) for x in request.POST.getlist("set") if x.isdigit()]
     if set_ids:  # 未選択は「すべての番号（ファイル）」
         qs = qs.filter(question_set_id__in=set_ids)
+
+    # 直近で不正解の問題だけ（復習条件を絞り込みに統合）
+    if request.POST.get("only_wrong"):
+        qs = qs.filter(id__in=wrong_question_ids(subject))
+
+    # 通算でN回以上正解した問題を除外（覚えた問題を rotation から外す）
+    exclude_n = request.POST.get("exclude_correct", "")
+    if exclude_n.isdigit() and int(exclude_n) > 0:
+        qs = qs.annotate(
+            _correct_count=Count("answer_logs", filter=Q(answer_logs__is_correct=True))
+        ).filter(_correct_count__lt=int(exclude_n))
 
     ids = list(qs.order_by("question_set__order", "number").values_list("id", flat=True))
     if request.POST.get("order", "random") == "random":
@@ -346,18 +358,26 @@ def stats(request):
         .order_by("day")
     )
 
-    # 苦手問題（×回数が多い順）
-    worst = (
-        Question.objects.filter(question_set__subject=subject)
-        .annotate(wrong_count=Count("answer_logs", filter=Q(answer_logs__is_correct=False)))
-        .filter(wrong_count__gt=0)
-        .select_related("question_set")
-        .order_by("-wrong_count")[:10]
-    ) if subject else []
+    # 問題ごとの成績（正解数○・不正解数×・直近○×、×が多い順）
+    q_stats = (
+        question_answer_stats(subject).order_by("-wrong_count", "-last_answered_at")
+        if subject else []
+    )
 
     return render(request, "quiz/stats.html", {
         "subject": subject, "subjects": subjects,
         "total": total, "n_correct": n_correct,
         "percent": round(n_correct / total * 100) if total else 0,
-        "cat_stats": cat_stats, "daily": daily, "worst": worst,
+        "cat_stats": cat_stats, "daily": daily, "q_stats": q_stats,
     })
+
+
+@require_POST
+@login_required
+def reset_stats(request):
+    """現在の科目の回答履歴(AnswerLog)を全削除して成績をリセットする。"""
+    subject, _ = get_current_subject(request)
+    if subject:
+        AnswerLog.objects.filter(question__question_set__subject=subject).delete()
+        messages.success(request, f"{subject.name} の回答履歴（正解数・不正解数）をリセットしました。")
+    return redirect("quiz:stats")

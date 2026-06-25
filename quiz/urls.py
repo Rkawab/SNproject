@@ -7,6 +7,7 @@ app_name = "quiz"
 urlpatterns = [
     path("", views.top, name="top"),
     path("stats/", views.stats, name="stats"),
+    path("reset/", views.reset_stats, name="reset_stats"),
     # カスタム出題（条件で絞り込んだ問題を横断出題）
     path("start/", views.start, name="start"),
     path("q/<int:n>/", views.question, name="question"),

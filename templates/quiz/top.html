@@ -67,6 +67,34 @@
         </div>
     </div>
 
+    {# ----- 出題対象（学習状況での絞り込み） ----- #}
+    <h2 class="h6 text-muted mt-2 mb-1">🎯 出題対象</h2>
+    <div class="card shadow-sm mb-3">
+        <div class="list-group list-group-flush">
+            <label class="list-group-item d-flex justify-content-between align-items-center">
+                <span>
+                    <input class="form-check-input me-2" type="checkbox" name="only_wrong" value="1">
+                    直近で不正解の問題だけ
+                </span>
+                {% if review_count %}<span class="badge bg-secondary rounded-pill">{{ review_count }}</span>{% endif %}
+            </label>
+            <div class="list-group-item">
+                <div class="mb-2">正解回数で除外（通算）</div>
+                <div class="btn-group btn-group-sm w-100" role="group">
+                    <input type="radio" class="btn-check" name="exclude_correct" id="ex0" value="" checked>
+                    <label class="btn btn-outline-study" for="ex0">なし</label>
+                    <input type="radio" class="btn-check" name="exclude_correct" id="ex1" value="1">
+                    <label class="btn btn-outline-study" for="ex1">1回↑</label>
+                    <input type="radio" class="btn-check" name="exclude_correct" id="ex2" value="2">
+                    <label class="btn btn-outline-study" for="ex2">2回↑</label>
+                    <input type="radio" class="btn-check" name="exclude_correct" id="ex3" value="3">
+                    <label class="btn btn-outline-study" for="ex3">3回↑</label>
+                </div>
+                <p class="text-muted small mb-0 mt-1">正解した回数が指定以上の問題を出題から外します。</p>
+            </div>
+        </div>
+    </div>
+
     {# ----- 問題数 ----- #}
     <h2 class="h6 text-muted mt-2 mb-1">🔢 問題数</h2>
     <div class="btn-group w-100 mb-3" role="group">
