@@ -55,6 +55,25 @@ Redshift は **「分析専用の巨大データベース」** です。
 | **Data Sharing** | クラスタをコピーせず、別クラスタとデータを共有 |
 | **Enhanced VPC Routing** | S3との通信をVPC内に閉じ込める（セキュリティ要件向け） |
 
+## Redshift ML
+
+**Redshift ML** は、Redshift内のSQLからAmazon SageMakerを裏側で利用し、機械学習モデルの作成・トレーニング・推論を行う機能。データをDWHから外へ大きく動かさず、SQLで予測列を作るような使い方ができる。
+
+> [!example] たとえ話
+> Redshiftという経営分析室の中に「統計に強い分析担当（SageMaker）」を呼び、SQLで「来月の売上予測列を作って」と頼めるイメージ。
+
+| 要件 | 答え |
+|---|---|
+| DWH上のデータをSQLで分析 | Redshift |
+| SQLで機械学習モデルを作成/推論 | **Redshift ML** |
+| クラスタ管理を避けたい | **Redshift Serverless** |
+
+> [!tip] SAAひっかけ
+> 「DWH」「MPP」「列指向」= Redshift。
+> 「SQLで機械学習」= Redshift ML。
+> 「可能な限りサーバーレス」= Redshift Serverless。
+> 3つが同時に出たら **Redshift Serverless + Redshift ML** が強い候補。
+
 > [!warning] 可用性の注意点（SAAの落とし穴）
 > Redshift は伝統的に **単一AZ** で動くサービス（マルチAZ対応は後発機能）。
 > 「DWHの高可用性・災害対策」を問われたら、まず **スナップショットの別リージョンコピー → 復元** が王道の答え。RDSのような「マルチAZ自動フェイルオーバー」を即答しないこと。
@@ -69,6 +88,7 @@ Redshift は **「分析専用の巨大データベース」** です。
 | 注文処理など1件ずつの読み書き（トランザクション） | **RDS / Aurora**（Redshiftではない） |
 | DWHの災害対策（別リージョンで復旧したい） | **スナップショットのクロスリージョンコピー** |
 | たまにしか分析しないのでクラスタを常時持ちたくない | **Redshift Serverless** |
+| DWH上のデータからSQLでMLモデルを作りたい | **Redshift ML** |
 
 ## 関連
 - [[1102_データ分析の超基礎・用語集]]｜[[1101_AWS分析サービス一覧]]

@@ -37,6 +37,35 @@
 
 > [!note] 「自動ローテーションが必要」なら **Secrets Manager**、「無料で済む設定値・簡易な秘密情報」なら **Parameter Store**。
 
+## AWS Systems Manager Parameter Store
+
+**AWS Systems Manager Parameter Store** は、アプリの設定値や簡易的な秘密情報を階層的に保存する機能。`/prod/db/host` のようなパスで管理でき、IAMで読み取り権限を細かく制御できる。
+
+| パラメータ種別 | 内容 | SAAでの見方 |
+|---|---|---|
+| **String** | 平文の設定値 | DBホスト名、機能フラグなど |
+| **StringList** | カンマ区切りの複数値 | サブネットID一覧など |
+| **SecureString** | KMSで暗号化した値 | 簡易シークレット。ただし自動ローテーションは別途実装 |
+
+> [!tip] ひっかけ
+> 認証情報を「安全に保管」だけなら Parameter Store でも足りる場面がある。
+> ただし「**定期的な自動ローテーション**」「RDS認証情報の管理」まで求めるなら [[1605_データ保護・暗号化|Secrets Manager]] が本命。
+
+## Session Manager / EC2 Instance Connect Endpoint / Client VPN
+
+プライベートサブネットのEC2へ入る選択肢として混同しやすい。
+
+| 方法 | 何を提供するか | SAAでの判断 |
+|---|---|---|
+| **Session Manager** | SSM Agent経由のシェル接続。SSHポート・踏み台・鍵管理なし。ログ記録しやすい | 「SSHを開けない」「監査ログ」「踏み台なし」なら本命 |
+| **EC2 Instance Connect Endpoint（EC2 Instance Connect エンドポイント）** | VPC内のエンドポイント経由でプライベートEC2へSSH接続 | 踏み台不要だが、SSH運用・鍵・OS側のログ管理は残る |
+| **AWS Client VPN** | 利用者端末をVPCへVPN接続し、プライベートIPに到達可能にする | ネットワーク到達性の提供。各EC2へのSSH運用は別問題 |
+
+> [!tip] ひっかけ
+> 「接続できる」だけなら Client VPN や EC2 Instance Connect Endpoint でもよい。
+> しかし「**インバウンドポートを開けず、鍵管理を避け、操作ログも記録**」まで揃うと Session Manager が選ばれる。
+
 ## 関連ノート
 - [[1401_マネジメント・ガバナンスサービス一覧]]
-- [EC2やVPCとは](../01_EC2/01_EC2やVPCとは.md)
+- [[0101_EC2やVPCとは]]
+- [[0405_ネットワークとコンテンツ配信]]

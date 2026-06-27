@@ -207,6 +207,21 @@ GitHub → CodeBuild（docker build & push to ECR）→ ECS（新イメージで
 
 ---
 
+## ECR と AWS CodeArtifact の違い
+
+名前が似ているが、保管するものが違う。
+
+| サービス | 保管するもの | 典型用途 |
+|---|---|---|
+| **Amazon ECR** | Docker/OCIコンテナイメージ | ECS/EKS/Fargateがpullして実行 |
+| **AWS CodeArtifact** | npm / pip / Maven などのパッケージ | アプリのビルド時に依存ライブラリを取得 |
+
+> [!tip] SAAひっかけ
+> 「コンテナイメージをECSタスク定義から参照」なら **ECR**。
+> CodeArtifactはパッケージリポジトリで、ECSがコンテナイメージを直接pullするレジストリではない。
+
+---
+
 ## 7. SAA試験 頻出パターン
 
 > [!tip] 試験のお決まりパターン

@@ -78,6 +78,11 @@ CloudTrailが「**操作の事実（誰が何をAPI呼んだか）**」を残す
 
 - 例：**PCI-DSS、HIPAA、CIS Benchmarks、AWS Foundational Security Best Practices**
 - YAMLテンプレートで管理・配布可能
+- 日本語では **コンフォーマンスパック** と表記されることがある
+
+> [!tip] SAAひっかけ
+> コンフォーマンスパックは「設定ルール集」を配る仕組み。例：S3公開禁止、EBS暗号化必須、root MFA必須など。
+> EC2/ECR/Lambdaの中にある既知脆弱性（CVE）をスキャンする機能ではない。脆弱性スキャンは [[1603_脅威検知・監査|Amazon Inspector]]。
 
 ### 5. Aggregator（アグリゲータ）
 

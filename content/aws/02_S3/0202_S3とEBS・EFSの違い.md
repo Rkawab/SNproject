@@ -5,12 +5,14 @@
 - **EBS** = ブロックストレージ。EC2にマウントして**ディスク**として使う（基本1台のみ）
 - **EFS** = ファイルストレージ（NFS）。**複数EC2から共有フォルダ**としてマウント
 - **S3** = オブジェクトストレージ。マウントせず **HTTP API・URLでアクセス**
+- **Amazon FSx for Windows File Server** = Windows向けファイルストレージ（SMB/NTFS/AD連携）。**Windowsの共有フォルダ**として使う
 
 > [!tip] 例え：Windowsでの対応
 > | AWS | Windowsの例え | 用途 |
 > |---|---|---|
 > | EBS | **Cドライブ**（内蔵SSD） | OSやアプリが動く場所 |
-> | EFS | **ネットワークドライブ**（\\server\share） | 複数PCで共有する社内フォルダ |
+> | EFS | **Linux向けネットワークドライブ**（NFS） | 複数Linuxサーバーで共有する社内フォルダ |
+> | FSx for Windows File Server | **Windowsの共有フォルダ**（SMB） | Windowsアプリ・AD連携が必要な共有 |
 > | S3 | **GoogleドライブやOneDrive** | ブラウザ・APIでアクセスするファイル置き場 |
 
 ## 詳細比較表
@@ -63,12 +65,26 @@ S3はマウントされないため、ファイルの直接編集はできず「
 | EFS | 即座にマウントして読み書きできる状態を**常に維持**している → 高い |
 | S3 | API経由の取り出しに少し時間がかかってもいい設計 → 安い |
 
+## FSx for Windows File Server はいつ出る？
+
+**Amazon FSx for Windows File Server** は、Windows Server 上に構築されたフルマネージドなファイル共有サービス。SMBプロトコル、NTFSアクセス権、Active Directory連携が必要なときに使う。
+
+| 要件 | 選ぶもの |
+|---|---|
+| Linuxの複数EC2で共有ファイル | **EFS** |
+| WindowsアプリがSMB共有・NTFS権限・AD連携を必要とする | **FSx for Windows File Server** |
+| ファイル共有ではなく、URL/APIでオブジェクトを保存 | **S3** |
+
+> [!tip] SAAひっかけ
+> 「複数EC2で共有」だけならEFSを選びがちだが、問題文に **Windows / SMB / NTFS / Active Directory** が出たら FSx for Windows File Server を疑う。
+
 ## SAA試験ポイント
 
 | 問題文のキーワード | 答え |
 |---|---|
 | EC2の起動ディスク・DBのデータ領域 | **EBS** |
 | 複数AZの複数EC2から共有（Linux） | **EFS** |
+| Windowsアプリの共有ファイル、SMB、NTFS、AD連携 | **FSx for Windows File Server** |
 | 静的コンテンツ・バックアップ・データレイク・容量無制限 | **S3** |
 | 「最も耐久性が高いストレージ」 | **S3**（イレブンナイン） |
 | 「最もコスト効率の良い大容量保存」 | **S3**（＋ストレージクラス → [[0203_S3ストレージクラス]]） |
