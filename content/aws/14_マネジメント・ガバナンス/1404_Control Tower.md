@@ -1,4 +1,4 @@
-﻿# AWS Control Tower（SAA ★★）
+# AWS Control Tower（SAA ★★）
 
 > [!info] 一言で
 > **Organizationsを使ったベストプラクティスなマルチアカウント環境を、ボタン一つで自動構築・統制する**サービス。

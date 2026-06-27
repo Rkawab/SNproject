@@ -1,4 +1,4 @@
-﻿# AWS Organizations（SAA頻出 ★★★）
+# AWS Organizations（SAA頻出 ★★★）
 
 > [!info] 一言で
 > **複数のAWSアカウントを束ねて一括管理する「本社機能」**。請求の集約と、組織全体への統制（ガードレール）が主目的。
