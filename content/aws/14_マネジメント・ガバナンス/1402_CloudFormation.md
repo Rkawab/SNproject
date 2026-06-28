@@ -41,3 +41,4 @@ CloudFormationは **詳細な設計図（テンプレート）を渡せば、同
 ## 関連ノート
 - [[1401_マネジメント・ガバナンスサービス一覧]]
 - [[1404_Control Tower]]（内部でCloudFormation/Organizationsを利用）
+- [[0709_Beanstalk・CloudFormation・AppRunnerの違い]]（混同しやすい3者の整理。Beanstalkは内部でCFnを使う）
