@@ -21,6 +21,7 @@ SERIES_LABELS = {
     3: "シナリオ",
     4: "SAA模擬試験レベル",
     5: "外部サイト模擬試験",
+    6: "読解・用語ドリル",
 }
 
 
@@ -45,6 +46,8 @@ CATEGORY_ORDER = [
     "Migration / Transfer",
     "Cost Optimization",
     "Machine Learning",
+    # 問題文の読み方・一般IT用語のドリル（6xx系列）専用。サービス系問題には使わない
+    "読解・用語",
 ]
 
 # 答え記号: <strong>X</strong> / <strong>A, C</strong>

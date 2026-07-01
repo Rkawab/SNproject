@@ -20,6 +20,7 @@ from notes.models import Subject, Folder, Note
 from notes.rendering import strip_frontmatter, extract_title, render_markdown
 from quiz.models import QuestionSet, Question
 from quiz.parsing import parse_exam
+from quiz.services import SERIES_LABELS
 
 LEADING_NUM_RE = re.compile(r"^(\d+)")
 
@@ -121,8 +122,9 @@ class Command(BaseCommand):
                 continue
             set_stems.add(path.stem)
             order = _leading_number(path.stem)
-            # ファイル名先頭桁をレベル（出題タイプ）に: 101→1 / 201→2 ... 501→5。1〜5以外は0
-            series = order // 100 if 1 <= order // 100 <= 5 else 0
+            # ファイル名先頭桁をレベル（出題タイプ）に: 101→1 / 201→2 ... 601→6。
+            # 有効な系列は quiz/services.py の SERIES_LABELS が正本（未定義の桁は0=その他）
+            series = order // 100 if order // 100 in SERIES_LABELS else 0
             qset, _ = QuestionSet.objects.update_or_create(
                 source_filename=path.stem,
                 defaults={

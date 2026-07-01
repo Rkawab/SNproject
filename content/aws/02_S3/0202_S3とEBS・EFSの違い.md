@@ -68,6 +68,7 @@ S3はマウントされないため、ファイルの直接編集はできず「
 ## FSx for Windows File Server はいつ出る？
 
 **Amazon FSx for Windows File Server** は、Windows Server 上に構築されたフルマネージドなファイル共有サービス。SMBプロトコル、NTFSアクセス権、Active Directory連携が必要なときに使う。
+FSxには他に **Lustre（HPC・ML向け高速）/ NetApp ONTAP / OpenZFS** の3種があり、4種の見分け方は → [[0213_FSxファミリー4種の使い分け]]
 
 | 要件 | 選ぶもの |
 |---|---|
