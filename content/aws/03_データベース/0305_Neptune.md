@@ -90,4 +90,4 @@ Neptuneは「**繋がりそのもの**」をデータとして保存するので
 
 - [[0301_RDS]] – 通常のリレーショナルDB
 - [[0303_DynamoDB]] – NoSQL（キー・バリュー）
-- [[DocumentDB]] – MongoDBライク（ドキュメントDB）
+- [[0308_DocumentDB]] – MongoDBライク（ドキュメントDB）
