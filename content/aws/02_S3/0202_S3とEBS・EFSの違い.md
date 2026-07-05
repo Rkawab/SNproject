@@ -84,7 +84,7 @@ FSxには他に **Lustre（HPC・ML向け高速）/ NetApp ONTAP / OpenZFS** の
 | 問題文のキーワード | 答え |
 |---|---|
 | EC2の起動ディスク・DBのデータ領域 | **EBS** |
-| 複数AZの複数EC2から共有（Linux） | **EFS** |
+| 複数AZの複数EC2から共有（Linux） | **EFS**（設定詳細 → [[0214_EFS詳細]]） |
 | Windowsアプリの共有ファイル、SMB、NTFS、AD連携 | **FSx for Windows File Server** |
 | 静的コンテンツ・バックアップ・データレイク・容量無制限 | **S3** |
 | 「最も耐久性が高いストレージ」 | **S3**（イレブンナイン） |
